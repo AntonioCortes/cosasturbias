@@ -26,7 +26,7 @@ void jugar(int *tablero, int fil, int col);
 
 void generar_matriz(int *& matriz, int tam_matriz, int num_colores);
 
-int main(int argc, char ** argv)
+int mainL(int argc, char ** argv)
 
 {
 
@@ -59,7 +59,8 @@ int main(int argc, char ** argv)
 		scanf("%i", &filas);
 		printf("Columnas: ");
 		scanf("%i", &columnas);
-		juego(filas, columnas, dificultad, false);
+
+		//juego(filas, columnas, dificultad, false);
 	}
 	else if (opcion == 2)
 	{
@@ -148,15 +149,27 @@ void jugar(int *tablero, int fil, int col,int size){
 	//Este método lanzará el kernel de juego.
 	//Primero creamos la variable que va al device:
 	int* tableroD;
+	int fila = 0;
+	int columna = 0;
 	//Reservamos memoria 
 	cudaMalloc(&tableroD, size);
 	//Copiamos nuestro tablero al device.
 	cudaMemcpy(tableroD, tablero, size, cudaMemcpyHostToDevice);
+	printf("Introduzca la posicion del bloque que desea eliminar:\n");
+	printf("Fila: ");
+	scanf("%i", &fila);
+	printf("Columna: ");
+	scanf("%i", &columna);
+	dim3 DimGrid(1, 1);
+	dim3 DimBlock(fil, col);
+	KernelJugar << <DimGrid, DimBlock >> >(tableroD, fil, col, fila, columna);
+	cudaMemcpy(tablero, tableroD, size, cudaMemcpyDeviceToHost);
+	//Falta mostrarlo
 }
 
 
-__global__ void KernelJugar(int *tablero, int fila, int columna, int i, int j){ //fila y columna indican el máximo número en el tablero de juego, i y j las cordenadas de la fila a eliminar.
-	//Si el hilo es el que ha seleccionado el jugador como columna:
+__global__ void KernelJugar(int *tablero, int fila, int columna, int i, int j){ //fila y columna indican el máximo número en el tablero de juego, i y j las cordenadas del a eliminar.
+	//Si el hilo es el que ha seleccionado el jugador:
 	if (threadIdx.x == i && threadIdx.y == j){
 		//Ejecutará el comprobar los bloques
 		comprobarBloques(tablero, threadIdx.x, threadIdx.y,fila,columna);
@@ -165,24 +178,134 @@ __global__ void KernelJugar(int *tablero, int fila, int columna, int i, int j){ 
 	__syncthreads();
 }
 
-__device__ void comprobarBloques(int *tablero, int x, int y,int fila, int columna){
+__device__ void comprobarBloques(int *tablero, int x, int y,int fila, int columna){ //X indica la fila, Y la columna
 	//Primero compruebo si en algún lateral del tablero En el juego solo puede estar arriba, abajo, derecha o izquierda.Sin diagonales.
-	if (tablero[(x*columna) + y] == tablero[((x*columna) + y) - columna]){//Compruebo arriba
+	bool fallo = true;
+	if (x!=0 && tablero[(x*columna) + y] == tablero[((x*columna) + y) - columna]){//Compruebo arriba
+		//La primera comprobación comprueba que no sea la ficha de más arriba, por que si lo es no puede comprobar.
 		//Si se cumple es que hay una ficha igual arriba.
+		fallo = false;
 		tablero[(x*columna) + y] = 0;//Lo pasamos a cero para después eliminarlo.
+		comprobarBloquesArriba(tablero, x-1, y, fila, columna);
 	}
-	else if (tablero[(x*columna) + y] == tablero[((x*columna) + y) + 1]){//Compruebo a la derecha.
+	if (y!=columna-1 && (y+1) &&  tablero[(x*columna) + y] == tablero[((x*columna) + y) + 1]){//Compruebo a la derecha.
+		//La primera comprobacion mira si el elemento no es el último de la matriz a la derecha, porque si lo fuera no puede comprobar a la derecha, pues 
+		//Ya no habría más derecha.
+		//Si se cumple.
+		fallo = false;
+		tablero[(x*columna) + y] = 0;//Lo pasamos a cero para después eliminarlo. Por si antes no se cumplío
+		//Llamo a eliminar derecha.
+		comprobarBloquesDerecha(tablero, x, y+1, fila, columna);
+	}
+	if (y!=0 && tablero[(x*columna) + y] == tablero[((x*columna) + y) - 1]){ //Compruebo a la izquierda.
+		//Si la columna es 0 es que es el elemento de más a la izquierda.
+		//Si se cumple llamo a eliminar izquierda.
+		fallo = false;
+		tablero[(x*columna) + y] = 0;
+		comprobarBloquesIzquierda(tablero, x, y-1, fila, columna);
+	}
+	if (x!=fila-1  && tablero[(x*columna) + y] == tablero[((x*columna) + y) + columna]){//Compruebo abajo.
+		//La primera comprobación comprubea si no es el elemento de la última fila, en caso afirmativo, no busca más abajo pues no hay.
+		//Si se cumple llamo a eliminar abajo.
+		fallo = false;
+		tablero[(x*columna) + y] = 0;
+		comprobarBloquesAbajo(tablero,x+1,y,fila,columna);
+	}
+	if (fallo){
+		printf("Ninguna combinación posible,vuelve a intentarlo:");
+	}
+}
+
+__device__ void comprobarBloquesArriba(int *tablero, int x, int y, int fila, int columna){
+	//Función que comprueba arriba del bloque inicial si hay más bloques a eliminar.
+	tablero[(x*columna) + y] = 0;//Si se llama a esta función, es que el elemento actual también debemos eliminarlo.
+	//Misma comprobación que en comprobar bloques normales solo que ya no mira abajo.
+	if (x != 0 && tablero[(x*columna) + y] == tablero[((x*columna) + y) - columna]){//Compruebo arriba
+		//Si se cumple es que hay una ficha igual arriba.
+		comprobarBloquesArriba(tablero, x - 1, y, fila, columna);
+	}
+	if (y != columna - 1 && (y + 1) && tablero[(x*columna) + y] == tablero[((x*columna) + y) + 1]){//Compruebo a la derecha.
+		//La primera comprobacion mira si el elemento no es el último de la matriz a la derecha, porque si lo fuera no puede comprobar a la derecha, pues 
+		//Ya no habría más derecha.
 		//Si se cumple.
 		//Llamo a eliminar derecha.
+		comprobarBloquesDerecha(tablero, x, y + 1, fila, columna);
 	}
-	else if (tablero[(x*columna) + y] == tablero[((x*columna) + y) - 1]){ //Compruebo a la izquierda.
+	if (y != 0 && tablero[(x*columna) + y] == tablero[((x*columna) + y) - 1]){ //Compruebo a la izquierda.
+		//Si la columna es 0 es que es el elemento de más a la izquierda.
 		//Si se cumple llamo a eliminar izquierda.
-	}
-	else if (tablero[(x*columna) + y] == tablero[((x*columna) + y) + columna]){//Compruebo abajo.
-		//Si se cumple llamo a eliminar abajo.
+		comprobarBloquesIzquierda(tablero, x, y - 1, fila, columna);
 	}
 	else{
 		//Si no se cumple en niguna es que la ficha está sola y no se puede hacer una combinación con ella.
 		printf("No es posible realizar ningún tipo de combinación con el bloque seleccionado");
 	}
 }
+
+__device__ void comprobarBloquesDerecha(int *tablero, int x, int y, int fila, int columna){
+	//Función que comprueba a la derecha del bloque inicial si hay más bloques a eliminar.
+	tablero[(x*columna) + y] = 0;//Si se llama a esta función, es que el elemento actual también debemos eliminarlo.
+	//Misma comprobación que en comprobar bloques normales solo que ya no mira a la izquierda.
+	if (x != 0 && tablero[(x*columna) + y] == tablero[((x*columna) + y) - columna]){//Compruebo arriba
+		//Si se cumple es que hay una ficha igual arriba.
+		comprobarBloquesArriba(tablero, x - 1, y, fila, columna);
+	}
+	if (y != columna - 1 && (y + 1) && tablero[(x*columna) + y] == tablero[((x*columna) + y) + 1]){//Compruebo a la derecha.
+		//La primera comprobacion mira si el elemento no es el último de la matriz a la derecha, porque si lo fuera no puede comprobar a la derecha, pues 
+		//Ya no habría más derecha.
+		//Si se cumple.
+		comprobarBloquesDerecha(tablero, x, y + 1, fila, columna);
+		//Llamo a eliminar derecha.
+	}
+	if (x != fila - 1 && tablero[(x*columna) + y] == tablero[((x*columna) + y) + columna]){//Compruebo abajo.
+		//La primera comprobación comprubea si no es el elemento de la última fila, en caso afirmativo, no busca más abajo pues no hay.
+		//Si se cumple llamo a eliminar abajo.
+		comprobarBloquesAbajo(tablero, x + 1, y, fila, columna);
+	}
+}
+
+__device__ void comprobarBloquesIzquierda(int *tablero, int x, int y, int fila, int columna){
+	//Función que comprueba a la izquierda del bloque inicial si hay más bloques a eliminar.
+	tablero[(x*columna) + y] = 0;//Si se llama a esta función, es que el elemento actual también debemos eliminarlo.
+	//Misma comprobación que en comprobar bloques normales solo que ya no mira a la derecha.
+	if (x != 0 && tablero[(x*columna) + y] == tablero[((x*columna) + y) - columna]){//Compruebo arriba
+		//Si se cumple es que hay una ficha igual arriba.
+		comprobarBloquesArriba(tablero, x - 1, y, fila, columna);
+
+	}
+	if (y != 0 && tablero[(x*columna) + y] == tablero[((x*columna) + y) - 1]){ //Compruebo a la izquierda.
+		//Si la columna es 0 es que es el elemento de más a la izquierda.
+		//Si se cumple llamo a eliminar izquierda.
+		comprobarBloquesIzquierda(tablero, x, y - 1, fila, columna);
+	}
+	if (x != fila - 1 && tablero[(x*columna) + y] == tablero[((x*columna) + y) + columna]){//Compruebo abajo.
+		//La primera comprobación comprubea si no es el elemento de la última fila, en caso afirmativo, no busca más abajo pues no hay.
+		//Si se cumple llamo a eliminar abajo.
+		comprobarBloquesAbajo(tablero, x + 1, y, fila, columna);
+	}
+}
+
+__device__ void comprobarBloquesAbajo(int *tablero, int x, int y, int fila, int columna){
+	//Función que comprueba abajo del bloque inicial si hay más bloques a eliminar.
+	tablero[(x*columna) + y] = 0;//Si se llama a esta función, es que el elemento actual también debemos eliminarlo.
+	//Misma comprobación que en comprobar bloques normales solo que ya no mira arriba
+	if (y != columna - 1 && (y + 1) && tablero[(x*columna) + y] == tablero[((x*columna) + y) + 1]){//Compruebo a la derecha.
+		//La primera comprobacion mira si el elemento no es el último de la matriz a la derecha, porque si lo fuera no puede comprobar a la derecha, pues 
+		//Ya no habría más derecha.
+		//Si se cumple.
+		comprobarBloquesDerecha(tablero, x, y + 1, fila, columna);
+		//Llamo a eliminar derecha.
+	}
+	if (y != 0 && tablero[(x*columna) + y] == tablero[((x*columna) + y) - 1]){ //Compruebo a la izquierda.
+		//Si la columna es 0 es que es el elemento de más a la izquierda.
+		//Si se cumple llamo a eliminar izquierda.
+		comprobarBloquesIzquierda(tablero, x, y - 1, fila, columna);
+	}
+	if (x != fila - 1 && tablero[(x*columna) + y] == tablero[((x*columna) + y) + columna]){//Compruebo abajo.
+		//La primera comprobación comprubea si no es el elemento de la última fila, en caso afirmativo, no busca más abajo pues no hay.
+		comprobarBloquesAbajo(tablero, x + 1, y, fila, columna);
+		//Si se cumple llamo a eliminar abajo.
+	}
+}
+
+
