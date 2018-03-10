@@ -5,6 +5,7 @@
 #include <iostream>
 #include <time.h>
 #include <stdlib.h>
+#include <windows.h>
 
 #define AZUL 1
 #define ROJO 2
@@ -15,6 +16,7 @@
 
 void juego(const int filas, const int columnas, int num_colores, bool cargar_partida);
 void generar_matriz(int *& matriz, int tam_matriz, int num_colores);
+void dibujar_matriz(int * matriz, int filas, int columnas);
 
 int main(int argc, char ** argv)
 {
@@ -23,6 +25,7 @@ int main(int argc, char ** argv)
 	int columnas = 0;
 	int opcion = 0;
 
+	//SetConsoleDisplayMode(GetStdHandle(STD_OUTPUT_HANDLE), CONSOLE_FULLSCREEN_MODE, 0);
 	srand(time(NULL));
 
 	printf("Seleccione 1 para empezar una nueva partida o 2 para cargar partida\n");
@@ -75,6 +78,8 @@ void juego(const int filas,const int columnas, int dificultad, bool cargar_parti
 	int num_colores = (dificultad == 1) ? 5 : 6;
 	const int tam_matriz = filas * columnas;
 	int  * matriz = (int *) malloc(tam_matriz * sizeof(int));
+	int pos_fila = 0;
+	int pos_columna = 0;
 
 	if (cargar_partida)
 	{
@@ -84,13 +89,6 @@ void juego(const int filas,const int columnas, int dificultad, bool cargar_parti
 	else
 	{
 		generar_matriz(matriz, tam_matriz, num_colores);
-
-		//comprobar los valores de la matriz
-		for (int i = 0; i < tam_matriz; i++)
-		{
-			printf("%i\n",matriz[i]);
-		}
-		scanf("%i", opcion);
 	}
 
 	while (!salir)
@@ -101,13 +99,31 @@ void juego(const int filas,const int columnas, int dificultad, bool cargar_parti
 			   "| 2 = guardar partida  |\n"
 			   "| 3 = salir del juego  |\n"
 			   " ---------------------- \n");
+		dibujar_matriz(matriz, filas, columnas);
 
+		printf("Elija opcion: ");
 		scanf("%i", &opcion);
 
 		switch (opcion)
 		{
 			case 1:
+			{
+				printf("Introduzca posicion de la casilla (fila/columna):\n");
+				printf("fila: ");
+				scanf("%i", &pos_fila);
+				printf("columna: ");
+				scanf("%i", &pos_columna);
+
+				/*
+				while(hay_ceros)
+				{
+					jugar()
+				}
+				*/
+
+				
 				break;
+			}
 			case 2:
 				break;
 			case 3:
@@ -127,4 +143,26 @@ void generar_matriz(int *& matriz, int tam_matriz, int num_colores)
 	{
 		matriz[i] = rand() % num_colores + 1;
 	}
+}
+
+void dibujar_matriz(int * matriz, int filas, int columnas)
+{
+	printf(" \t");
+
+	for (int i = 0; i < columnas; i++)
+	{
+		printf("%i   ", i);
+	}
+	printf("\n\n\n");
+
+	for (int i = 0; i < filas; i++)
+	{
+		printf("%i\t", i);
+		for (int n = 0; n < columnas; n++)
+		{
+			printf("%i   ", matriz[i * columnas + n]);
+		}
+		printf("\n");
+	}
+
 }
