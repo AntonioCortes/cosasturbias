@@ -124,6 +124,7 @@ void juego(int filas,int columnas, int dificultad, bool cargar_partida, FILE *& 
 	while (!salir)
 	{
 		//system("cls");
+		generarAleatorios(matriz, tam_matriz, num_colores);
 		printf("dificuldad = %i\tfilas = %i\tcolumnas = %i\n", dificultad, filas, columnas);
 		printf(" ----------------------\n"
 			   "| 1 = seguir jugando   |\n"
