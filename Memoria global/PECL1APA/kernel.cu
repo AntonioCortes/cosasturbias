@@ -6,7 +6,7 @@
 #include <time.h>
 #include <stdlib.h>
 #include <windows.h>
-#include "book.h"
+//#include "book.h"
 
 #define AZUL 1
 #define ROJO 2
@@ -14,6 +14,10 @@
 #define VERDE 4
 #define MARRON 5
 #define AMARILLO 6
+#define BOMBAHOR 7
+#define BOMBAVER 8
+#define BOMBATNT 9
+#define BOMBAPUZZLE 10
 #define TILE_WIDTH 4
 
 void juego(int filas, int columnas, int num_colores, bool cargar_partida, FILE *& datos_partida, FILE *& archivo_matriz);
@@ -23,10 +27,10 @@ void cargar_datos(int &dificultad, int &filas, int &columnas, FILE *& datos_part
 void cargar_matriz(int *& matriz, long tam_matriz, FILE *& archivo_matriz);
 void guardar_partida(int * matriz, int dificultad, int filas, int columnas,FILE *& archivo_matriz, FILE *& datos_partida);//guarda los datos de la partida (dificultad, numero de filas y columnas) en un archivo .txt y la matriz en un archivo .data
 void comprobar_dimensiones(int filas, int columnas, bool & dimensiones_adecuadas);//comprueba si las dimensiones del tableropermiten correr en un bloque SM
-void jugar(int *tablero, int fil, int col, int size, int fila, int columna);
+void jugar(int *tablero, int fil, int col, int size, int fila, int columna, int num_colores);
 void generarAleatorios(int *& matriz, int tam_matriz, int num_colores);
 
-__global__ void KernelJugar(int *tablero, int fila, int columna, int i, int j);
+__global__ void KernelJugar(int *tablero, int fila, int columna, int i, int j, int bomba, int color);
 __device__ void comprobarBloques(int *tablero, int x, int y, int fila, int columna);
 __device__ void comprobarBloquesArriba(int *tablero, int x, int y, int fila, int columna);
 __device__ void comprobarBloquesDerecha(int *tablero, int x, int y, int fila, int columna);
@@ -39,6 +43,7 @@ __device__ void borrarIzquierda(int *tablero, int x, int y, int fila, int column
 __device__ void bombaVertical(int *tablero, int x, int y, int fila, int columna);
 __device__ void bombaHorizontal(int *tablero, int x, int y, int fila, int columna);
 __device__ void bombaTNT(int *tablero, int x, int y, int fila, int columna);
+__device__ void bombaPuzzle(int *tablero, int x, int y, int fila, int columna, int color);
 
 int main(int argc, char ** argv)
 {
@@ -145,7 +150,7 @@ void juego(int filas,int columnas, int dificultad, bool cargar_partida, FILE *& 
 				scanf("%i", &pos_fila);
 				printf("columna: ");
 				scanf("%i", &pos_columna);
-				jugar(matriz, filas, columnas, filas*columnas*sizeof(int), pos_fila, pos_columna);
+				jugar(matriz, filas, columnas, filas*columnas*sizeof(int), pos_fila, pos_columna, num_colores);
 
 				break;
 			}
@@ -332,7 +337,7 @@ void cargar_matriz(int *& matriz, long tam_matriz, FILE *& archivo_matriz)
 	fclose(archivo_matriz);
 }
 
-void jugar(int *tablero, int fil, int col, int size, int fila, int columna){
+void jugar(int *tablero, int fil, int col, int size, int fila, int columna, int num_colores){
 	//Este método lanzará el kernel de juego.
 	//Primero creamos la variable que va al device:
 	int* tableroD;
@@ -342,7 +347,7 @@ void jugar(int *tablero, int fil, int col, int size, int fila, int columna){
 	cudaMemcpy(tableroD, tablero, size, cudaMemcpyHostToDevice);
 	dim3 DimGrid(1, 1);
 	dim3 DimBlock(fil, col);
-	KernelJugar << <DimGrid, DimBlock >> >(tableroD, fil, col, fila, columna);
+	KernelJugar << <DimGrid, DimBlock >> >(tableroD, fil, col, fila, columna, (rand() % 2 + 1), (rand() % num_colores + 1));
 	cudaMemcpy(tablero, tableroD, size, cudaMemcpyDeviceToHost);
 	cudaFree(tableroD);
 	//Falta mostrarlo
@@ -350,17 +355,52 @@ void jugar(int *tablero, int fil, int col, int size, int fila, int columna){
 	//cudaDeviceReset();
 }
 
-__global__ void KernelJugar(int *tablero, int fila, int columna, int i, int j){ //fila y columna indican el máximo número en el tablero de juego, i y j las cordenadas del a eliminar.
+__global__ void KernelJugar(int *tablero, int fila, int columna, int i, int j, int bomba, int color){ //fila y columna indican el máximo número en el tablero de juego, i y j las cordenadas del a eliminar.
 	//Si el hilo es el que ha seleccionado el jugador:
 	int x = threadIdx.x;
 	int y = threadIdx.y;
-	//printf("Cordenada x: %d \n", x);
-	//printf("Cordenada y: %d \n", y);
+	int numCeros = 0;
+	//Comprobamos primero que no sea una bomba.
 	if (x == i && y == j){
-		//Ejecutará el comprobar los bloques
-		comprobarBloques(tablero, x, y, fila, columna);
+		if (tablero[x*columna + y] == 7){
+			bombaHorizontal(tablero, x, y, fila, columna);
+		}
+		else if (tablero[x*columna + y] == 8){
+			bombaVertical(tablero, x, y, fila, columna);
+		}
+		else if (tablero[x*columna + y] == 9){
+			bombaTNT(tablero, x, y, fila, columna);
+		}
+		else if ((tablero[x*columna + y]) == 10) {
+			printf("Entro aquí \n");
+			bombaPuzzle(tablero, x, y, fila, columna, color);
+		}
+		else{
+			//Ejecutará el comprobar los bloques
+			comprobarBloques(tablero, x, y, fila, columna);
+			for (int l = 0; l < fila*columna; l++)
+			{
+				if (tablero[l] == 0){
+					numCeros++;
+				}
+			}
+			printf("Num ceros: %d \n", numCeros);
+			if (numCeros >= 7){
+				tablero[x*fila + y] = 10;
+			}
+			else if (numCeros == 6){
+				tablero[x*fila + y] = 9;
+			}
+			else if (numCeros >= 4){
+				if (bomba == 1){
+					tablero[x*columna + y] = 7;
+				}
+				else{
+					tablero[x*columna + y] = 8;
+				}
+			}
+		}
 	}
-	//Espero a la sincronización de hilos.
 	__syncthreads();
 	for (int i = 0; i <= fila; i++){
 		if (x > 0){
@@ -373,6 +413,7 @@ __global__ void KernelJugar(int *tablero, int fila, int columna, int i, int j){ 
 	}
 
 }
+
 
 __device__ void comprobarBloques(int *tablero, int x, int y, int fila, int columna){ //X indica la fila, Y la columna
 	//Primero compruebo si en algún lateral del tablero En el juego solo puede estar arriba, abajo, derecha o izquierda.Sin diagonales.
@@ -551,7 +592,15 @@ __device__ void bombaTNT(int *tablero, int x, int y, int fila, int columna){
 	}
 
 }
-
+__device__ void bombaPuzzle(int *tablero, int x, int y, int fila, int columna, int color){
+	for (int l = 0; l < fila*columna; l++)
+	{
+		if (tablero[l] == color){
+			printf("He puesto un color a O %d \n", color);
+			tablero[l] == 0;
+		}
+	}
+}
 __device__ void borrarAbajo(int *tablero, int x, int y, int fila, int columna){
 	tablero[(x*columna) + y] = 0;
 	if (x + 1 <= fila - 1){//Abajo
