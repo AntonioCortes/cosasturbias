@@ -372,7 +372,7 @@ __global__ void KernelJugar(int *tablero, int fila, int columna, int i, int j, i
 			bombaTNT(tablero, x, y, fila, columna);
 		}
 		else if ((tablero[x*columna + y]) == 10) {
-			printf("Entro aquí \n");
+			//printf("Entro aquí \n");
 			bombaPuzzle(tablero, x, y, fila, columna, color);
 		}
 		else{
