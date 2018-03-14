@@ -362,7 +362,7 @@ __global__ void KernelJugar(int *tablero, int fila, int columna, int i, int j, i
 	int numCeros = 0;
 	//Comprobamos primero que no sea una bomba.
 	if (x == i && y == j){
-		if (tablero[x*columna + y] == 7){
+		if (tablero[x*columna + y] == 7 ){
 			bombaHorizontal(tablero, x, y, fila, columna);
 		}
 		else if (tablero[x*columna + y] == 8){
@@ -593,11 +593,12 @@ __device__ void bombaTNT(int *tablero, int x, int y, int fila, int columna){
 
 }
 __device__ void bombaPuzzle(int *tablero, int x, int y, int fila, int columna, int color){
+	tablero[(x*columna) + y] = 0;
 	for (int l = 0; l < fila*columna; l++)
 	{
 		if (tablero[l] == color){
 			printf("He puesto un color a O %d \n", color);
-			tablero[l] == 0;
+			tablero[l] = 0;
 		}
 	}
 }
