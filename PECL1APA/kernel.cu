@@ -6,6 +6,7 @@
 #include <time.h>
 #include <stdlib.h>
 #include <windows.h>
+#include "book.h"
 
 #define AZUL 1
 #define ROJO 2
@@ -14,9 +15,13 @@
 #define MARRON 5
 #define AMARILLO 6
 
-void juego(const int filas, const int columnas, int num_colores, bool cargar_partida);
-void generar_matriz(int *& matriz, int tam_matriz, int num_colores);
+void juego(int filas, int columnas, int num_colores, bool cargar_partida, FILE *& datos_partida, FILE *& archivo_matriz);
+void generar_matriz(int *& matriz, long tam_matriz, int num_colores);
 void dibujar_matriz(int * matriz, int filas, int columnas);
+void cargar_datos(int &dificultad, int &filas, int &columnas, FILE *& datos_partida); //carga los datos de la partida (dificultad, numero filas y columnas, pero no la matriz)
+void cargar_matriz(int *& matriz, long tam_matriz, FILE *& archivo_matriz);
+void guardar_partida(int * matriz, int dificultad, int filas, int columnas,FILE *& archivo_matriz, FILE *& datos_partida);//guarda los datos de la partida (dificultad, numero de filas y columnas) en un archivo .txt y la matriz en un archivo .data
+void comprobar_dimensiones(int filas, int columnas, bool & dimensiones_adecuadas);//comprueba si las dimensiones del tableropermiten correr en un bloque SM
 
 int main(int argc, char ** argv)
 {
@@ -24,6 +29,9 @@ int main(int argc, char ** argv)
 	int filas = 0;
 	int columnas = 0;
 	int opcion = 0;
+	FILE * datos_partida;
+	FILE  * archivo_matriz;
+	bool dimensiones_adecuadas = false;
 
 	//SetConsoleDisplayMode(GetStdHandle(STD_OUTPUT_HANDLE), CONSOLE_FULLSCREEN_MODE, 0);
 	srand(time(NULL));
@@ -46,45 +54,50 @@ int main(int argc, char ** argv)
 
 		} while ((dificultad != 1) && (dificultad != 2));
 
-		printf("Introduzca el numero de filas y columnas del tablero\n");
-		printf("Filas: ");
-		scanf("%i", &filas);
-		printf("Columnas: ");
-		scanf("%i", &columnas);
+		do
+		{
+			printf("Introduzca el numero de filas y columnas del tablero\n");
+			printf("Filas: ");
+			scanf("%i", &filas);
+			printf("Columnas: ");
+			scanf("%i", &columnas);
 
-		juego(filas, columnas, dificultad, false);
+			comprobar_dimensiones(filas, columnas, dimensiones_adecuadas);
+
+			if (!dimensiones_adecuadas)
+			{
+				printf("Error, el tablero es demasiado grande para correr en un bloque SM\n");
+				system("pause");
+				system("cls");
+			}
+		} while (!dimensiones_adecuadas);
+
+		juego(filas, columnas, dificultad, false, datos_partida, archivo_matriz);
 	}
 	else if (opcion == 2)
-	{
-		//TODO: recoger los datos del txt e inicializar los valores de filas columnas y dificultad
-		filas = 0;
-		columnas = 0;
-		dificultad = 0;
-
-		printf("cargar partida\n");
-		juego(filas, columnas, dificultad, true);
+	{		
+		cargar_datos(dificultad, filas, columnas, datos_partida);
+		juego(filas, columnas, dificultad, true, datos_partida, archivo_matriz);
 	}
-
 
 	system("pause");
 	return 0;
 }
 
-void juego(const int filas,const int columnas, int dificultad, bool cargar_partida)
+void juego(int filas,int columnas, int dificultad, bool cargar_partida, FILE *& datos_partida, FILE *& archivo_matriz)
 {
 
 	bool salir = false;
 	int opcion = 0;
 	int num_colores = (dificultad == 1) ? 5 : 6;
-	const int tam_matriz = filas * columnas;
+	long tam_matriz = filas * columnas;
 	int  * matriz = (int *) malloc(tam_matriz * sizeof(int));
 	int pos_fila = 0;
 	int pos_columna = 0;
-
+	
 	if (cargar_partida)
 	{
-		//TODO:recoger la matriz serializada deserializarla y guardarla en la variable matriz
-		//matriz = 
+		cargar_matriz(matriz, tam_matriz, archivo_matriz);
 	}
 	else
 	{
@@ -94,11 +107,12 @@ void juego(const int filas,const int columnas, int dificultad, bool cargar_parti
 	while (!salir)
 	{
 		system("cls");
+		printf("dificuldad = %i\tfilas = %i\tcolumnas = %i\n", dificultad, filas, columnas);
 		printf(" ----------------------\n"
 			   "| 1 = seguir jugando   |\n"
 			   "| 2 = guardar partida  |\n"
 			   "| 3 = salir del juego  |\n"
-			   " ---------------------- \n");
+			   " ---------------------- \n\n");
 		dibujar_matriz(matriz, filas, columnas);
 
 		printf("Elija opcion: ");
@@ -115,17 +129,20 @@ void juego(const int filas,const int columnas, int dificultad, bool cargar_parti
 				scanf("%i", &pos_columna);
 
 				/*
-				while(hay_ceros)
+				do
 				{
-					jugar()
-				}
+					//jugar()
+				} while (hay_ceros());
 				*/
 
 				
 				break;
 			}
 			case 2:
+			{				
+				guardar_partida(matriz, dificultad, filas, columnas, archivo_matriz, datos_partida);
 				break;
+			}
 			case 3:
 			{
 				salir = true;
@@ -137,7 +154,18 @@ void juego(const int filas,const int columnas, int dificultad, bool cargar_parti
 	}
 }
 
-void generar_matriz(int *& matriz, int tam_matriz, int num_colores)
+void comprobar_dimensiones(int filas, int columnas, bool & dimensiones_adecuadas)
+{
+	cudaDeviceProp propiedades_gpu;
+	cudaGetDeviceProperties(&propiedades_gpu, 0);
+
+	long capacidad_sm = propiedades_gpu.maxThreadsDim[0] * propiedades_gpu.maxThreadsDim[1] * propiedades_gpu.maxThreadsDim[2];
+	long tam_matriz =  filas * columnas;
+
+	dimensiones_adecuadas = (tam_matriz > capacidad_sm) ? false : true;
+}
+
+void generar_matriz(int *& matriz, long tam_matriz, int num_colores)
 {
 	for (int i = 0; i < tam_matriz; i++)
 	{
@@ -147,6 +175,8 @@ void generar_matriz(int *& matriz, int tam_matriz, int num_colores)
 
 void dibujar_matriz(int * matriz, int filas, int columnas)
 {
+	int valor = 0;
+
 	printf(" \t");
 
 	for (int i = 0; i < columnas; i++)
@@ -160,9 +190,125 @@ void dibujar_matriz(int * matriz, int filas, int columnas)
 		printf("%i\t", i);
 		for (int n = 0; n < columnas; n++)
 		{
-			printf("%i   ", matriz[i * columnas + n]);
+			valor = matriz[i * columnas + n];
+
+			switch (valor) 
+			{
+			case 0:
+				SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 0);
+				break;
+			case 1:
+				SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 1);
+				break;
+			case 2:
+				SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 4);
+				break;
+			case 3:
+				SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 13);
+				break;
+			case 4:
+				SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 2);
+				break;
+			case 5:
+				SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 6);
+				break;
+			case 6:
+				SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 14);
+				break;
+			}
+
+			printf("%i   ", valor);
 		}
 		printf("\n");
+		SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 15);
 	}
 
 }
+
+void guardar_partida(int * matriz, int dificultad, int filas, int columnas, FILE *& archivo_matriz, FILE *& datos_partida)
+{
+	long tam_matriz = filas * columnas; 
+
+	if ((datos_partida = fopen("datos_partida.txt", "w")) == NULL)
+	{
+		printf("error abriendo el archivo \"datos_partida.txt\" \n");
+		system("pause");
+		exit(1);
+	}
+	else
+	{
+		fprintf(datos_partida, "%i\n", dificultad);
+		fprintf(datos_partida, "%i\n", filas);
+		fprintf(datos_partida, "%i", columnas);
+		fclose(datos_partida);
+	}
+
+	if ((archivo_matriz = fopen("matriz.data", "wb")) == NULL)
+	{
+		printf("error abriendo el archivo \"archivo_matriz.txt\" \n");
+		system("pause");
+		exit(1);
+	}
+	else
+	{
+		fwrite(matriz, sizeof(int), tam_matriz, archivo_matriz);
+		fclose(archivo_matriz);
+	}
+}
+
+
+
+void cargar_datos(int &dificultad, int &filas, int &columnas, FILE *& datos_partida)
+{
+	if ((datos_partida = fopen("datos_partida.txt", "r")))
+	{
+		int linea_actual = 0;
+		while (!feof(datos_partida))
+		{
+			linea_actual++;
+
+			switch (linea_actual)
+			{
+			case 1:
+			{
+					  fscanf(datos_partida, "%d", &dificultad);
+					  break;
+			}
+			case 2:
+			{
+					  fscanf(datos_partida, "%d", &filas);
+					  break;
+			}
+			case 3:
+			{
+					  fscanf(datos_partida, "%d", &columnas);
+					  break;
+			}
+			default:
+				break;
+			}
+		}
+
+		fclose(datos_partida);
+	}
+	else
+	{
+		printf("error abriendo el archivo datos_partida.txt\n");
+		return;
+	}
+}
+
+void cargar_matriz(int *& matriz, long tam_matriz, FILE *& archivo_matriz)
+{
+	if ((archivo_matriz = fopen("matriz.data", "rb")))
+	{
+		fread(matriz, sizeof(int), tam_matriz, archivo_matriz);
+	}
+	else
+	{
+		printf("error abriendo el archivo \"archivo_matriz\"");
+		return;
+	}
+	fclose(archivo_matriz);
+}
+
