@@ -215,10 +215,10 @@ void comprobar_dimensiones(int filas, int columnas, bool & dimensiones_adecuadas
 	cudaDeviceProp propiedades_gpu;
 	cudaGetDeviceProperties(&propiedades_gpu, 0);
 
-	long capacidad_sm = propiedades_gpu.maxThreadsDim[0] * propiedades_gpu.maxThreadsDim[1] * propiedades_gpu.maxThreadsDim[2];
+	long capacidad_bloque = propiedades_gpu.maxThreadsPerBlock * 10000;
 	long tam_matriz =  filas * columnas;
 
-	dimensiones_adecuadas = (tam_matriz > capacidad_sm) ? false : true;
+	dimensiones_adecuadas = (tam_matriz > capacidad_bloque) ? false : true;
 }
 
 void generar_matriz(int *& matriz, long tam_matriz, int num_colores)
@@ -425,7 +425,7 @@ void explotar_vertical(int *& tablero, long tam_tablero ,int filas, int columnas
 	cudaMemcpy(tablero_d, tablero, tam_tablero * sizeof(int), cudaMemcpyHostToDevice);
 	//definir tamaño de grid y de bloque
 	dim3 DimGrid(1, 1);
-	dim3 DimBlock(filas, columnas);
+	dim3 DimBlock(columnas, filas);
 
 	explosion_vertical<<<DimGrid,DimBlock>>>(tablero_d, columnas, columna);
 
@@ -450,7 +450,7 @@ void explotar_horizontal(int *& tablero, long tam_tablero, int filas, int column
 	cudaMemcpy(tablero_d, tablero, tam_tablero * sizeof(int), cudaMemcpyHostToDevice);
 	//definir tamaño de grid y de bloque
 	dim3 DimGrid(1, 1);
-	dim3 DimBlock(filas, columnas);
+	dim3 DimBlock(columnas, filas);
 
 	explosion_horizontal << <DimGrid, DimBlock >> >(tablero_d, columnas, fila);
 
@@ -475,7 +475,7 @@ void explotar_tnt(int *& tablero, long tam_tablero, int filas, int columnas, int
 	cudaMemcpy(tablero_d, tablero, tam_tablero * sizeof(int), cudaMemcpyHostToDevice);
 	//definir tamaño de grid y de bloque
 	dim3 DimGrid(1, 1);
-	dim3 DimBlock(filas, columnas);
+	dim3 DimBlock(columnas, filas);
 
 	explosion_tnt << <DimGrid, DimBlock >> >(tablero_d,tam_tablero, filas, columnas, fila, columna);
 
