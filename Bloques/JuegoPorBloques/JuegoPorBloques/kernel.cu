@@ -33,6 +33,8 @@ bool es_bomba(int * matriz, int fila, int columna, int num_columnas, int &tipo_b
 void explotar_vertical(int *& tablero, long tam_tablero, int filas, int columnas, int columna);//helper que ejecuta el kernel de la explosion de la bomba vertical
 void explotar_horizontal(int *& tablero, long tam_tablero, int filas, int columnas, int fila);//helper que ejecuta el kernel de la explosion de la bomba horizontal
 void explotar_tnt(int *& tablero, long tam_tablero, int filas, int columnas, int fila, int columna);
+void explotar_puzle(int *& tablero, long tam_tablero, int filas, int columnas, int fila, int columna, int num_colores);
+
 
 __global__ void KernelJugar(int *tablero, int fila, int columna, int i, int j, int bomba, int color);
 __global__ void explosion_vertical(int * tablero, int anchura_tablero, int columna);
@@ -47,6 +49,7 @@ __device__ void borrarArriba(int *tablero, int x, int y, int fila, int columna);
 __device__ void borrarAbajo(int *tablero, int x, int y, int fila, int columna);
 __device__ void borrarDerecha(int *tablero, int x, int y, int fila, int columna);
 __device__ void borrarIzquierda(int *tablero, int x, int y, int fila, int columna);
+__global__ void explosion_puzle(int * tablero, int columnas, int fila, int columna, int color);
 //__device__ void bombaVertical(int *tablero, int x, int y, int fila, int columna);
 //__device__ void bombaHorizontal(int *tablero, int x, int y, int fila, int columna);
 //__device__ void bombaTNT(int *tablero, int x, int y, int fila, int columna);
@@ -181,6 +184,7 @@ void juego(int filas, int columnas, int dificultad, bool cargar_partida, FILE *&
 					  }
 					  case BOMBAPUZZLE:
 					  {
+										  explotar_puzle(matriz, tam_matriz, filas, columnas, pos_fila, pos_columna, num_colores);
 										  break;
 					  }
 					  default:
@@ -246,7 +250,15 @@ void dibujar_matriz(int * matriz, int filas, int columnas)
 
 	for (int i = 0; i < columnas; i++)
 	{
-		printf("%i   ", i);
+		if (i < 10)
+		{
+			printf("%i   ", i);
+		}
+		else if (i < 100)
+		{
+			printf("%i  ", i);
+		}
+
 	}
 	printf("\n\n\n");
 
@@ -260,26 +272,71 @@ void dibujar_matriz(int * matriz, int filas, int columnas)
 			switch (valor)
 			{
 			case 0:
-				SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 0);
-				break;
+			{
+					  SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 0);
+					  printf("%i   ", valor);
+					  break;
+			}
 			case 1:
-				SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 1);
-				break;
+			{
+					  SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 1);
+					  printf("%i   ", valor);
+					  break;
+			}
 			case 2:
-				SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 4);
-				break;
+			{
+					  SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 4);
+					  printf("%i   ", valor);
+					  break;
+			}
 			case 3:
-				SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 13);
-				break;
+			{
+					  SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 13);
+					  printf("%i   ", valor);
+					  break;
+			}
 			case 4:
-				SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 2);
-				break;
+			{
+					  SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 2);
+					  printf("%i   ", valor);
+					  break;
+			}
 			case 5:
-				SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 6);
-				break;
+			{
+					  SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 6);
+					  printf("%i   ", valor);
+					  break;
+			}
 			case 6:
-				SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 14);
-				break;
+			{
+					  SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 14);
+					  printf("%i   ", valor);
+					  break;
+			}
+			case BOMBAHOR:
+			{
+							 SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 15);
+							 printf("H   ");
+							 break;
+			}
+			case BOMBAVER:
+			{
+							 SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 15);
+							 printf("V   ");
+							 break;
+			}
+			case BOMBATNT:
+			{
+							 SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 15);
+							 printf("T   ");
+							 break;
+			}
+			case BOMBAPUZZLE:
+			{
+								SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 15);
+								printf("P   ");
+								break;
+			}
 			default:
 			{
 					   SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 15);
@@ -287,7 +344,7 @@ void dibujar_matriz(int * matriz, int filas, int columnas)
 			}
 			}
 
-			printf("%i   ", valor);
+
 		}
 		printf("\n");
 		SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 15);
@@ -412,7 +469,7 @@ void jugar(int *tablero, int fil, int col, int size, int fila, int columna, int 
 	cudaFree(tableroD);
 	//Falta mostrarlo
 	dibujar_matriz(tablero, fil, col);
-	cudaDeviceReset();
+	//cudaDeviceReset();
 }
 
 void explotar_vertical(int *& tablero, long tam_tablero, int filas, int columnas, int columna)
@@ -436,7 +493,7 @@ void explotar_vertical(int *& tablero, long tam_tablero, int filas, int columnas
 
 	//liberar memoria
 	cudaFree(tablero_d);
-	cudaDeviceReset();
+	//cudaDeviceReset();
 
 }
 
@@ -461,7 +518,7 @@ void explotar_horizontal(int *& tablero, long tam_tablero, int filas, int column
 
 	//liberar memoria
 	cudaFree(tablero_d);
-	cudaDeviceReset();
+	//cudaDeviceReset();
 
 }
 
@@ -486,7 +543,32 @@ void explotar_tnt(int *& tablero, long tam_tablero, int filas, int columnas, int
 
 	//liberar memoria
 	cudaFree(tablero_d);
-	cudaDeviceReset();
+	//cudaDeviceReset();
+
+}
+void explotar_puzle(int *& tablero, long tam_tablero, int filas, int columnas, int fila, int columna, int num_colores)
+{
+	int * tablero_d;
+	int color = rand() % num_colores + 1;
+
+	//reservar memoria
+	cudaMalloc(&tablero_d, tam_tablero * sizeof(int));
+	//copiar tablero al device
+	cudaMemcpy(tablero_d, tablero, tam_tablero * sizeof(int), cudaMemcpyHostToDevice);
+	//definir tamaño de grid y de bloque
+	dim3 DimGrid((filas + TILE_WIDTH - 1) / TILE_WIDTH, (columnas + TILE_WIDTH - 1) / TILE_WIDTH);
+	dim3 DimBlock(TILE_WIDTH, TILE_WIDTH);
+
+	explosion_puzle << <DimGrid, DimBlock >> >(tablero_d, columnas, fila, columna, color);
+
+	//copiar tablero al host
+	cudaMemcpy(tablero, tablero_d, tam_tablero * sizeof(int), cudaMemcpyDeviceToHost);
+
+	dibujar_matriz(tablero, filas, columnas);
+
+	//liberar memoria
+	cudaFree(tablero_d);
+	//cudaDeviceReset();
 
 }
 
@@ -523,17 +605,17 @@ __global__ void KernelJugar(int *tablero, int fila, int columna, int i, int j, i
 			}
 			printf("Num ceros: %d \n", numCeros);
 			if (numCeros >= 7){
-				tablero[x*fila + y] = 10;
+				tablero[x*fila + y] = BOMBAPUZZLE;
 			}
 			else if (numCeros == 6){
-				tablero[x*fila + y] = 9;
+				tablero[x*fila + y] = BOMBATNT;
 			}
 			else if (numCeros >= 4){
 				if (bomba == 1){
-					tablero[x*columna + y] = 7;
+					tablero[x*columna + y] = BOMBAHOR;
 				}
 				else{
-					tablero[x*columna + y] = 8;
+					tablero[x*columna + y] = BOMBAVER;
 				}
 			}
 		}
@@ -843,6 +925,21 @@ __global__ void explosion_tnt(int * tablero, long tam_tablero, int filas, int co
 	else if ((pos_hilo == arriba_izq) || (pos_hilo == abajo_izq) || (pos_hilo == arriba_der) || (pos_hilo == abajo_der))
 	{
 		tablero[pos_hilo] = 0;
+	}
+}
+__global__ void explosion_puzle(int * tablero, int columnas, int fila, int columna, int color)
+{
+	int columna_hilo = blockIdx.x*blockDim.x + threadIdx.x;
+	int fila_hilo = blockIdx.y*blockDim.y + threadIdx.y;
+
+	if (tablero[fila * columnas + columna] == tablero[fila_hilo * columnas + columna_hilo])//si el valor de la posicion del hilo es la bomba puzle, esta se borra
+	{
+		tablero[fila_hilo * columnas + columna_hilo] = 0;
+	}
+
+	if (tablero[fila_hilo * columnas + columna_hilo] == color)//si en la posicion del hilo hay un valor del color elegido se borra
+	{
+		tablero[fila_hilo * columnas + columna_hilo] = 0;
 	}
 }
 
