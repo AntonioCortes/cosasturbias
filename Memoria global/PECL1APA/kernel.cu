@@ -406,7 +406,7 @@ void jugar(int *tablero, int fil, int col, int size, int fila, int columna, int 
 	//Copiamos nuestro tablero al device.
 	cudaMemcpy(tableroD, tablero, size, cudaMemcpyHostToDevice);
 	dim3 DimGrid(1, 1);
-	dim3 DimBlock(fil, col);
+	dim3 DimBlock(col, fil);
 	KernelJugar << <DimGrid, DimBlock >> >(tableroD, fil, col, fila, columna, (rand() % 2 + 1), (rand() % num_colores + 1));
 	cudaMemcpy(tablero, tableroD, size, cudaMemcpyDeviceToHost);
 	cudaFree(tableroD);
