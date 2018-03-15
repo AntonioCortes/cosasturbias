@@ -311,25 +311,25 @@ void dibujar_matriz(int * matriz, int filas, int columnas)
 					  printf("%i   ", valor);
 					  break;
 			}
-			case 7:
-			{
-					  SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 15);
-					  printf("V   ");
-					  break;
-			}
-			case 8:
+			case BOMBAHOR:
 			{
 					  SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 15);
 					  printf("H   ");
 					  break;
 			}
-			case 9:
+			case BOMBAVER:
+			{
+					  SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 15);
+					  printf("V   ");
+					  break;
+			}
+			case BOMBATNT:
 			{
 					  SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 15);
 					  printf("T   ");
 					  break;
 			}
-			case 10:
+			case BOMBAPUZZLE:
 			{
 					  SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 15);
 					  printf("P   ");
@@ -600,15 +600,16 @@ __global__ void KernelJugar(int *tablero, int fila, int columna, int i, int j, i
 
 	if (x == i && y == j){ //si el hilo se corresponde con la casilla elegida por el jugador
 
-		comprobarBloques(tablero, x, y, fila, columna, num_vidas); //comprueba si los bloques 
+		comprobarBloques(tablero, x, y, fila, columna, num_vidas); //comprueba si los bloques adyacentes contienen el mismo valor, para eliminarlos
 
-		for (int l = 0; l < fila*columna; l++)
+		for (int l = 0; l < fila*columna; l++)//contar cuantos bloques vacíos hay en el tablero después de eliminar bloques
 		{
 			if (tablero[l] == 0){
 				numCeros++;
 			}
 		}
 
+		//en función de cuantos bloques haya vacíos, se determina que bomba aparece
 		if (numCeros >= 7){
 			tablero[x*fila + y] = BOMBAPUZZLE;
 		}
@@ -637,7 +638,7 @@ __global__ void KernelJugar(int *tablero, int fila, int columna, int i, int j, i
 	}
 }
 
-
+//comprueba si los bloques adyacentes contienen el mismo valor, para eliminarlos
 __device__ void comprobarBloques(int *tablero, int x, int y, int fila, int columna , int * num_vidas){ //X indica la fila, Y la columna
 	//Primero compruebo si en algún lateral del tablero En el juego solo puede estar arriba, abajo, derecha o izquierda.Sin diagonales.
 	bool fallo = true;
@@ -765,12 +766,13 @@ __device__ void comprobarBloquesAbajo(int *tablero, int x, int y, int fila, int 
 	tablero[(x*columna) + y] = 0;//Si se llama a esta función, es que el elemento actual también debemos eliminarlo.
 }
 
+//ejecuta la explosión de una bomba vertical
 __global__ void explosion_vertical(int * tablero, int anchura_tablero,int columna)
 {
 	int fila_hilo = threadIdx.y;
 	int columna_hilo = threadIdx.x;
 
-	if (columna_hilo == columna)
+	if (columna_hilo == columna)//si la columna a la que pertenece el hilo, es la columna donde se da la explosión, el hilo elimina el valor que haya en su posición
 	{
 		tablero[fila_hilo * anchura_tablero + columna_hilo] = 0;
 	}
@@ -778,12 +780,13 @@ __global__ void explosion_vertical(int * tablero, int anchura_tablero,int column
 	__syncthreads();
 }
 
+//ejecuta la explosión de una bomba horizontal
 __global__ void explosion_horizontal(int * tablero, int anchura_tablero, int fila)
 {
 	int fila_hilo = threadIdx.y;
 	int columna_hilo = threadIdx.x;
 
-	if (fila_hilo == fila)
+	if (fila_hilo == fila)//si la fila a la que pertenece el hilo, es la fila donde se da la explosión, el hilo elimina el valor que haya en su posición
 	{
 		tablero[fila_hilo * anchura_tablero + columna_hilo] = 0;
 	}
@@ -791,6 +794,7 @@ __global__ void explosion_horizontal(int * tablero, int anchura_tablero, int fil
 	__syncthreads();
 }
 
+//ejecuta la explosión de una bomba tnt
 __global__ void explosion_tnt(int * tablero, long tam_tablero, int filas, int columnas, int fila, int columna)
 {
 	int fila_hilo = threadIdx.y;
@@ -810,6 +814,7 @@ __global__ void explosion_tnt(int * tablero, long tam_tablero, int filas, int co
 	int abajo_izq = (fila + 1) * columnas + columna - 1;
 	int abajo_der = (fila + 1) * columnas + columna + 1;
 
+	//si la posición del hilo, es adyacente a la posición elegida por el usuario, el hilo elimina el valor correspondiente a su posición
 	if ((pos_hilo == pos_elegida) || (pos_hilo == arriba) || (pos_hilo == abajo) || (pos_hilo == derecha) || (pos_hilo == izquierda))
 	{
 		tablero[pos_hilo] = 0;
@@ -820,6 +825,7 @@ __global__ void explosion_tnt(int * tablero, long tam_tablero, int filas, int co
 	}
 }
 
+//ejecuta la explosión de una bomba puzle
 __global__ void explosion_puzle(int * tablero, int columnas, int fila, int columna, int color)
 {
 	int fila_hilo = threadIdx.y;
@@ -830,7 +836,7 @@ __global__ void explosion_puzle(int * tablero, int columnas, int fila, int colum
 		tablero[fila_hilo * columnas + columna_hilo] = 0;
 	}
 
-	if (tablero[fila_hilo * columnas + columna_hilo] == color)//si en la posicion del hilo hay un valor del color elegido se borra
+	if (tablero[fila_hilo * columnas + columna_hilo] == color)//si en la posicion del hilo hay un valor del color elegido, se borra
 	{
 		tablero[fila_hilo * columnas + columna_hilo] = 0;
 	}
