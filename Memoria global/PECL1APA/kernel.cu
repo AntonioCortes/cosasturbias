@@ -96,7 +96,7 @@ int main(int argc, char ** argv)
 
 			if (!dimensiones_adecuadas)
 			{
-				printf("Error, el tablero es demasiado grande para correr en un bloque SM\n");
+				printf("Error, el tablero es demasiado grande para correr en un bloque\n");
 				system("pause");
 				system("cls");
 			}
@@ -215,7 +215,7 @@ void comprobar_dimensiones(int filas, int columnas, bool & dimensiones_adecuadas
 	cudaDeviceProp propiedades_gpu;
 	cudaGetDeviceProperties(&propiedades_gpu, 0);
 
-	long capacidad_bloque = propiedades_gpu.maxThreadsPerBlock * 10000;
+	long capacidad_bloque = propiedades_gpu.maxThreadsPerBlock;
 	long tam_matriz =  filas * columnas;
 
 	dimensiones_adecuadas = (tam_matriz > capacidad_bloque) ? false : true;
