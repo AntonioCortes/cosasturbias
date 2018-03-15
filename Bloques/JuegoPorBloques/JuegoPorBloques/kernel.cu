@@ -29,8 +29,15 @@ void guardar_partida(int * matriz, int dificultad, int filas, int columnas, FILE
 void comprobar_dimensiones(int filas, int columnas, bool & dimensiones_adecuadas);//comprueba si las dimensiones del tableropermiten correr en un bloque SM
 void jugar(int *tablero, int fil, int col, int size, int fila, int columna, int num_colores);
 void generarAleatorios(int *& matriz, int tam_matriz, int num_colores);
+bool es_bomba(int * matriz, int fila, int columna, int num_columnas, int &tipo_bomba);//comprueba si la posición elegida por el jugador corresponde a una bomba
+void explotar_vertical(int *& tablero, long tam_tablero, int filas, int columnas, int columna);//helper que ejecuta el kernel de la explosion de la bomba vertical
+void explotar_horizontal(int *& tablero, long tam_tablero, int filas, int columnas, int fila);//helper que ejecuta el kernel de la explosion de la bomba horizontal
+void explotar_tnt(int *& tablero, long tam_tablero, int filas, int columnas, int fila, int columna);
 
 __global__ void KernelJugar(int *tablero, int fila, int columna, int i, int j, int bomba, int color);
+__global__ void explosion_vertical(int * tablero, int anchura_tablero, int columna);
+__global__ void explosion_horizontal(int * tablero, int anchura_tablero, int fila);
+__global__ void explosion_tnt(int * tablero, long tam_tablero, int filas, int columnas, int fila, int columna);
 __device__ void comprobarBloques(int *tablero, int x, int y, int fila, int columna);
 __device__ void comprobarBloquesArriba(int *tablero, int x, int y, int fila, int columna);
 __device__ void comprobarBloquesDerecha(int *tablero, int x, int y, int fila, int columna);
@@ -40,10 +47,11 @@ __device__ void borrarArriba(int *tablero, int x, int y, int fila, int columna);
 __device__ void borrarAbajo(int *tablero, int x, int y, int fila, int columna);
 __device__ void borrarDerecha(int *tablero, int x, int y, int fila, int columna);
 __device__ void borrarIzquierda(int *tablero, int x, int y, int fila, int columna);
-__device__ void bombaVertical(int *tablero, int x, int y, int fila, int columna);
-__device__ void bombaHorizontal(int *tablero, int x, int y, int fila, int columna);
-__device__ void bombaTNT(int *tablero, int x, int y, int fila, int columna);
+//__device__ void bombaVertical(int *tablero, int x, int y, int fila, int columna);
+//__device__ void bombaHorizontal(int *tablero, int x, int y, int fila, int columna);
+//__device__ void bombaTNT(int *tablero, int x, int y, int fila, int columna);
 __device__ void bombaPuzzle(int *tablero, int x, int y, int fila, int columna, int color);
+
 
 int main(int argc, char ** argv)
 {
@@ -116,6 +124,7 @@ void juego(int filas, int columnas, int dificultad, bool cargar_partida, FILE *&
 	int  * matriz = (int *)malloc(tam_matriz * sizeof(int));
 	int pos_fila = 0;
 	int pos_columna = 0;
+	int tipo_bomba = 0;
 
 	if (cargar_partida)
 	{
@@ -150,7 +159,38 @@ void juego(int filas, int columnas, int dificultad, bool cargar_partida, FILE *&
 				  scanf("%i", &pos_fila);
 				  printf("columna: ");
 				  scanf("%i", &pos_columna);
-				  jugar(matriz, filas, columnas, filas*columnas*sizeof(int), pos_fila, pos_columna, num_colores);
+
+				  if (es_bomba(matriz, pos_fila, pos_columna, columnas, tipo_bomba))
+				  {
+					  switch (tipo_bomba)
+					  {
+					  case BOMBAVER:
+					  {
+									   explotar_vertical(matriz, tam_matriz, filas, columnas, pos_columna);
+									   break;
+					  }
+					  case BOMBAHOR:
+					  {
+									   explotar_horizontal(matriz, tam_matriz, filas, columnas, pos_fila);
+									   break;
+					  }
+					  case BOMBATNT:
+					  {
+									   explotar_tnt(matriz, tam_matriz, filas, columnas, pos_fila, pos_columna);
+									   break;
+					  }
+					  case BOMBAPUZZLE:
+					  {
+										  break;
+					  }
+					  default:
+						  break;
+					  }
+				  }
+				  else
+				  {
+					  jugar(matriz, filas, columnas, filas*columnas*sizeof(int), pos_fila, pos_columna, num_colores);
+				  }
 
 				  break;
 		}
@@ -175,10 +215,10 @@ void comprobar_dimensiones(int filas, int columnas, bool & dimensiones_adecuadas
 	cudaDeviceProp propiedades_gpu;
 	cudaGetDeviceProperties(&propiedades_gpu, 0);
 
-	long capacidad_sm = propiedades_gpu.maxThreadsDim[0] * propiedades_gpu.maxThreadsDim[1] * propiedades_gpu.maxThreadsDim[2];
+	long capacidad_bloque = propiedades_gpu.maxThreadsPerBlock * 10000;
 	long tam_matriz = filas * columnas;
 
-	dimensiones_adecuadas = (tam_matriz > capacidad_sm) ? false : true;
+	dimensiones_adecuadas = (tam_matriz > capacidad_bloque) ? false : true;
 }
 
 void generar_matriz(int *& matriz, long tam_matriz, int num_colores)
@@ -240,6 +280,11 @@ void dibujar_matriz(int * matriz, int filas, int columnas)
 			case 6:
 				SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 14);
 				break;
+			default:
+			{
+					   SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 15);
+					   break;
+			}
 			}
 
 			printf("%i   ", valor);
@@ -337,6 +382,21 @@ void cargar_matriz(int *& matriz, long tam_matriz, FILE *& archivo_matriz)
 	fclose(archivo_matriz);
 }
 
+bool es_bomba(int * matriz, int fila, int columna, int num_columnas, int &tipo_bomba)
+{
+	bool es_bomba = false;
+	int valor = matriz[fila * num_columnas + columna];
+
+	if ((valor == BOMBAHOR) || (valor == BOMBAVER) || (valor == BOMBATNT) || (valor == BOMBAPUZZLE))
+	{
+		es_bomba = true;
+		tipo_bomba = valor;
+	}
+
+	return es_bomba;
+}
+
+//
 void jugar(int *tablero, int fil, int col, int size, int fila, int columna, int num_colores){
 	//Este método lanzará el kernel de juego.
 	//Primero creamos la variable que va al device:
@@ -345,41 +405,116 @@ void jugar(int *tablero, int fil, int col, int size, int fila, int columna, int 
 	cudaMalloc(&tableroD, size);
 	//Copiamos nuestro tablero al device.
 	cudaMemcpy(tableroD, tablero, size, cudaMemcpyHostToDevice);
-	dim3 DimGrid(fil + (TILE_WIDTH - 1) / TILE_WIDTH, col + (TILE_WIDTH - 1) / TILE_WIDTH);
-	dim3 DimBlock(TILE_WIDTH,TILE_WIDTH);
+	dim3 DimGrid((fil + TILE_WIDTH - 1) / TILE_WIDTH, (col + TILE_WIDTH - 1) / TILE_WIDTH);
+	dim3 DimBlock(TILE_WIDTH, TILE_WIDTH);
 	KernelJugar << <DimGrid, DimBlock >> >(tableroD, fil, col, fila, columna, (rand() % 2 + 1), (rand() % num_colores + 1));
 	cudaMemcpy(tablero, tableroD, size, cudaMemcpyDeviceToHost);
 	cudaFree(tableroD);
 	//Falta mostrarlo
 	dibujar_matriz(tablero, fil, col);
-	//cudaDeviceReset();
+	cudaDeviceReset();
 }
 
+void explotar_vertical(int *& tablero, long tam_tablero, int filas, int columnas, int columna)
+{
+	int * tablero_d;
+
+	//reservar memoria
+	cudaMalloc(&tablero_d, tam_tablero * sizeof(int));
+	//copiar tablero al device
+	cudaMemcpy(tablero_d, tablero, tam_tablero * sizeof(int), cudaMemcpyHostToDevice);
+	//definir tamaño de grid y de bloque
+	dim3 DimGrid(1, 1);
+	dim3 DimBlock(columnas, filas);
+
+	explosion_vertical << <DimGrid, DimBlock >> >(tablero_d, columnas, columna);
+
+	//copiar tablero al host
+	cudaMemcpy(tablero, tablero_d, tam_tablero * sizeof(int), cudaMemcpyDeviceToHost);
+
+	dibujar_matriz(tablero, filas, columnas);
+
+	//liberar memoria
+	cudaFree(tablero_d);
+	cudaDeviceReset();
+
+}
+
+void explotar_horizontal(int *& tablero, long tam_tablero, int filas, int columnas, int fila)
+{
+	int * tablero_d;
+
+	//reservar memoria
+	cudaMalloc(&tablero_d, tam_tablero * sizeof(int));
+	//copiar tablero al device
+	cudaMemcpy(tablero_d, tablero, tam_tablero * sizeof(int), cudaMemcpyHostToDevice);
+	//definir tamaño de grid y de bloque
+	dim3 DimGrid(1, 1);
+	dim3 DimBlock(columnas, filas);
+
+	explosion_horizontal << <DimGrid, DimBlock >> >(tablero_d, columnas, fila);
+
+	//copiar tablero al host
+	cudaMemcpy(tablero, tablero_d, tam_tablero * sizeof(int), cudaMemcpyDeviceToHost);
+
+	dibujar_matriz(tablero, filas, columnas);
+
+	//liberar memoria
+	cudaFree(tablero_d);
+	cudaDeviceReset();
+
+}
+
+void explotar_tnt(int *& tablero, long tam_tablero, int filas, int columnas, int fila, int columna)
+{
+	int * tablero_d;
+
+	//reservar memoria
+	cudaMalloc(&tablero_d, tam_tablero * sizeof(int));
+	//copiar tablero al device
+	cudaMemcpy(tablero_d, tablero, tam_tablero * sizeof(int), cudaMemcpyHostToDevice);
+	//definir tamaño de grid y de bloque
+	dim3 DimGrid(1, 1);
+	dim3 DimBlock(columnas, filas);
+
+	explosion_tnt << <DimGrid, DimBlock >> >(tablero_d, tam_tablero, filas, columnas, fila, columna);
+
+	//copiar tablero al host
+	cudaMemcpy(tablero, tablero_d, tam_tablero * sizeof(int), cudaMemcpyDeviceToHost);
+
+	dibujar_matriz(tablero, filas, columnas);
+
+	//liberar memoria
+	cudaFree(tablero_d);
+	cudaDeviceReset();
+
+}
+
+//KernelJugar << <DimGrid, DimBlock >> >(tableroD, fil, col, fila, columna, (rand() % 2 + 1), (rand() % num_colores + 1));
 __global__ void KernelJugar(int *tablero, int fila, int columna, int i, int j, int bomba, int color){ //fila y columna indican el máximo número en el tablero de juego, i y j las cordenadas del a eliminar.
 	//Si el hilo es el que ha seleccionado el jugador:
 	int x = blockIdx.x*blockDim.x + threadIdx.x;
-	int y = blockIdx.y * blockDim.y + threadIdx.y;
+	int y = blockIdx.y*blockDim.y + threadIdx.y;
 	int numCeros = 0;
 	//Comprobamos primero que no sea una bomba.
 	if (x == i && y == j){
-		printf("Esta es el elemento elegido: %d \n", tablero[x*columna + y]);
-		if (tablero[x*columna + y] == 7){
-			bombaHorizontal(tablero, i, j, fila, columna);
+		/*if (tablero[x*columna + y] == 7 ){
+		bombaHorizontal(tablero, x, y, fila, columna);
 		}
 		else if (tablero[x*columna + y] == 8){
-			bombaVertical(tablero, i, j, fila, columna);
+		bombaVertical(tablero, x, y, fila, columna);
 		}
 		else if (tablero[x*columna + y] == 9){
-			bombaTNT(tablero, i, j, fila, columna);
+		bombaTNT(tablero, x, y, fila, columna);
 		}
-		else if ((tablero[x*columna + y]) == 10) {
+		else*/ if ((tablero[x*columna + y]) == 10) {
 			//printf("Entro aquí \n");
-			bombaPuzzle(tablero, i, j, fila, columna, color);
+			bombaPuzzle(tablero, x, y, fila, columna, color);
 		}
 		else{
 			//Ejecutará el comprobar los bloques
-			printf("ESTOY EN COMPROBAR BLOQUES: \n");
-			comprobarBloques(tablero, i, j, fila, columna);
+			printf("Estoy aquí\n");
+			comprobarBloques(tablero, x, y, fila, columna);
 			for (int l = 0; l < fila*columna; l++)
 			{
 				if (tablero[l] == 0){
@@ -388,33 +523,34 @@ __global__ void KernelJugar(int *tablero, int fila, int columna, int i, int j, i
 			}
 			printf("Num ceros: %d \n", numCeros);
 			if (numCeros >= 7){
-				tablero[i*fila + j] = 10;
+				tablero[x*fila + y] = 10;
 			}
 			else if (numCeros == 6){
-				tablero[i*fila + j] = 9;
+				tablero[x*fila + y] = 9;
 			}
 			else if (numCeros >= 4){
 				if (bomba == 1){
-					tablero[i*columna + j] = 7;
+					tablero[x*columna + y] = 7;
 				}
 				else{
-					tablero[i*columna + j] = 8;
+					tablero[x*columna + y] = 8;
 				}
 			}
 		}
 	}
 	__syncthreads();
-	//for (int i = 0; i <= fila; i++){
-		//if (x > 0){
-			//if (tablero[x*columna + y] == 0 && !tablero[(x - 1)*columna + y] == 0){
-			//	tablero[x*columna + y] = tablero[(x - 1)*columna + y];
-			//	tablero[(x - 1)*columna + y] = 0;
-			//}
-		//}
-		//__syncthreads();
-	//}
+
+	/*for (int i = 0; i <= fila; i++){
+		if (x > 0){
+		if (tablero[x*columna + y] == 0 && !tablero[(x - 1)*columna + y] == 0){
+		tablero[x*columna + y] = tablero[(x - 1)*columna + y];
+		tablero[(x - 1)*columna + y] = 0;
+		}
+		}
+		__syncthreads();
+		}*/
 	if (y < columna && x < fila) {
-		if (y < columna && x< fila) {
+		if (y < columna && x < fila) {
 			for (int i = 1; i < fila; i++) {
 
 				if (tablero[(fila - i)*columna + y] == 0) {
@@ -435,20 +571,18 @@ __global__ void KernelJugar(int *tablero, int fila, int columna, int i, int j, i
 
 			}
 		}
-	}
 
+	}
 }
 
 
 __device__ void comprobarBloques(int *tablero, int x, int y, int fila, int columna){ //X indica la fila, Y la columna
 	//Primero compruebo si en algún lateral del tablero En el juego solo puede estar arriba, abajo, derecha o izquierda.Sin diagonales.
-	printf("ESTOY dentro COMPROBAR BLOQUES: \n");
 	bool fallo = true;
 	if (x != 0 && tablero[(x*columna) + y] == tablero[((x*columna) + y) - columna]){//Compruebo arriba
 		//La primera comprobación comprueba que no sea la ficha de más arriba, por que si lo es no puede comprobar.
 		//Si se cumple es que hay una ficha igual arriba.
 		fallo = false;
-		printf("ESTOY en el if de comprobar arriba: \n");
 		comprobarBloquesArriba(tablero, x - 1, y, fila, columna);
 	}
 	if (y != columna - 1 && (y + 1) && tablero[(x*columna) + y] == tablero[((x*columna) + y) + 1]){//Compruebo a la derecha.
@@ -457,21 +591,18 @@ __device__ void comprobarBloques(int *tablero, int x, int y, int fila, int colum
 		//Si se cumple.
 		fallo = false;
 		//Llamo a eliminar derecha.
-		printf("ESTOY en el if de comprobar derecha: \n");
 		comprobarBloquesDerecha(tablero, x, y + 1, fila, columna);
 	}
 	if (y != 0 && tablero[(x*columna) + y] == tablero[((x*columna) + y) - 1]){ //Compruebo a la izquierda.
 		//Si la columna es 0 es que es el elemento de más a la izquierda.
 		//Si se cumple llamo a eliminar izquierda.
 		fallo = false;
-		printf("ESTOY en el if de comprobar izquierda: \n");
 		comprobarBloquesIzquierda(tablero, x, y - 1, fila, columna);
 	}
 	if (x != fila - 1 && tablero[(x*columna) + y] == tablero[((x*columna) + y) + columna]){//Compruebo abajo.
 		//La primera comprobación comprubea si no es el elemento de la última fila, en caso afirmativo, no busca más abajo pues no hay.
 		//Si se cumple llamo a eliminar abajo.
 		fallo = false;
-		printf("ESTOY en el if de comprobar abajo: \n");
 		comprobarBloquesAbajo(tablero, x + 1, y, fila, columna);
 	}
 	if (fallo == true){
@@ -483,7 +614,6 @@ __device__ void comprobarBloques(int *tablero, int x, int y, int fila, int colum
 }
 
 __device__ void comprobarBloquesArriba(int *tablero, int x, int y, int fila, int columna){
-	printf("ESTOY dentro de comprobar Arriba \n");
 	//Función que comprueba arriba del bloque inicial si hay más bloques a eliminar.
 	//Misma comprobación que en comprobar bloques normales solo que ya no mira abajo.
 	if (x != 0 && tablero[(x*columna) + y] == tablero[((x*columna) + y) - columna]){//Compruebo arriba
@@ -507,7 +637,7 @@ __device__ void comprobarBloquesArriba(int *tablero, int x, int y, int fila, int
 
 __device__ void comprobarBloquesDerecha(int *tablero, int x, int y, int fila, int columna){
 	//Función que comprueba a la derecha del bloque inicial si hay más bloques a eliminar.
-	printf("ESTOY dentro de comprobar Derecha \n");
+
 	//Misma comprobación que en comprobar bloques normales solo que ya no mira a la izquierda.
 	if (x != 0 && tablero[(x*columna) + y] == tablero[((x*columna) + y) - columna]){//Compruebo arriba
 		//Si se cumple es que hay una ficha igual arriba.
@@ -530,7 +660,6 @@ __device__ void comprobarBloquesDerecha(int *tablero, int x, int y, int fila, in
 
 __device__ void comprobarBloquesIzquierda(int *tablero, int x, int y, int fila, int columna){
 	//Función que comprueba a la izquierda del bloque inicial si hay más bloques a eliminar.
-	printf("ESTOY dentro de comprobar Izquierda \n");
 	//Misma comprobación que en comprobar bloques normales solo que ya no mira a la derecha.
 	if (x != 0 && tablero[(x*columna) + y] == tablero[((x*columna) + y) - columna]){//Compruebo arriba
 		//Si se cumple es que hay una ficha igual arriba.
@@ -552,7 +681,6 @@ __device__ void comprobarBloquesIzquierda(int *tablero, int x, int y, int fila, 
 
 __device__ void comprobarBloquesAbajo(int *tablero, int x, int y, int fila, int columna){
 	//Función que comprueba abajo del bloque inicial si hay más bloques a eliminar.
-	printf("ESTOY dentro de comprobar abajo \n");
 	//Misma comprobación que en comprobar bloques normales solo que ya no mira arriba
 	if (y != columna - 1 && (y + 1) && tablero[(x*columna) + y] == tablero[((x*columna) + y) + 1]){//Compruebo a la derecha.
 		//La primera comprobacion mira si el elemento no es el último de la matriz a la derecha, porque si lo fuera no puede comprobar a la derecha, pues 
@@ -574,57 +702,57 @@ __device__ void comprobarBloquesAbajo(int *tablero, int x, int y, int fila, int 
 	tablero[(x*columna) + y] = 0;//Si se llama a esta función, es que el elemento actual también debemos eliminarlo.
 }
 
-__device__ void bombaVertical(int *tablero, int x, int y, int fila, int columna){
-	tablero[(x*columna) + y] = 0;
-	if (x != fila - 1){
-		borrarAbajo(tablero, x + 1, y, fila, columna);
-	}
-	if (x != 0){
-		borrarArriba(tablero, x - 1, y, fila, columna);
-	}
+/*__device__ void bombaVertical(int *tablero, int x, int y, int fila, int columna){
+tablero[(x*columna) + y] = 0;
+if (x != fila - 1){
+borrarAbajo(tablero, x + 1, y, fila, columna);
+}
+if (x != 0){
+borrarArriba(tablero, x - 1, y, fila, columna);
+}
 }
 
 __device__ void bombaHorizontal(int *tablero, int x, int y, int fila, int columna){
-	tablero[(x*columna) + y] = 0;
-	if (y != columna - 1){
-		borrarDerecha(tablero, x, y + 1, fila, columna);
-	}
-	if (y != 0){
-		borrarIzquierda(tablero, x, y - 1, fila, columna);
-	}
+tablero[(x*columna) + y] = 0;
+if (y != columna - 1){
+borrarDerecha(tablero, x, y + 1, fila, columna);
+}
+if (y != 0){
+borrarIzquierda(tablero, x, y - 1, fila, columna);
+}
 }
 
 __device__ void bombaTNT(int *tablero, int x, int y, int fila, int columna){
-	tablero[(x*columna) + y] = 0;
-	if (x != fila - 1){//Abajo
-		tablero[((x + 1)*columna) + y] = 0;
-		//AbajoDerecha
-		if (y != columna - 1){
-			tablero[((x + 1)*columna) + (y + 1)] = 0;
-		}//AbajoIzquierda
-		if (y != 0){
-			tablero[((x + 1)*columna) + (y - 1)] = 0;
-		}
-
-	}
-	if (x != 0){
-		tablero[((x - 1)*columna) + y] = 0;
-		//ArribaDerecha
-		if (y != columna - 1){
-			tablero[((x - 1)*columna) + (y + 1)] = 0;
-		}//ArribaIzquierda
-		if (y != 0){
-			tablero[((x - 1)*columna) + (y - 1)] = 0;
-		}
-	}
-	if (y != columna - 1){
-		tablero[(x*columna) + (y + 1)] = 0;
-	}
-	if (y != 0){
-		tablero[(x*columna) + (y - 1)] = 0;
-	}
+tablero[(x*columna) + y] = 0;
+if (x != fila - 1){//Abajo
+tablero[((x + 1)*columna) + y] = 0;
+//AbajoDerecha
+if (y != columna - 1){
+tablero[((x + 1)*columna) + (y + 1)] = 0;
+}//AbajoIzquierda
+if (y != 0){
+tablero[((x + 1)*columna) + (y - 1)] = 0;
+}
 
 }
+if (x != 0){
+tablero[((x - 1)*columna) + y] = 0;
+//ArribaDerecha
+if (y != columna - 1){
+tablero[((x - 1)*columna) + (y + 1)] = 0;
+}//ArribaIzquierda
+if (y != 0){
+tablero[((x - 1)*columna) + (y - 1)] = 0;
+}
+}
+if (y != columna - 1){
+tablero[(x*columna) + (y + 1)] = 0;
+}
+if (y != 0){
+tablero[(x*columna) + (y - 1)] = 0;
+}
+
+}*/
 __device__ void bombaPuzzle(int *tablero, int x, int y, int fila, int columna, int color){
 	tablero[(x*columna) + y] = 0;
 	for (int l = 0; l < fila*columna; l++)
@@ -662,3 +790,59 @@ __device__ void borrarIzquierda(int *tablero, int x, int y, int fila, int column
 		borrarIzquierda(tablero, x, y - 1, fila, columna);
 	}
 }
+
+__global__ void explosion_vertical(int * tablero, int anchura_tablero, int columna)
+{
+	int fila_hilo = threadIdx.y;
+	int columna_hilo = threadIdx.x;
+
+	if (columna_hilo == columna)
+	{
+		tablero[fila_hilo * anchura_tablero + columna_hilo] = 0;
+	}
+
+	__syncthreads();
+}
+
+__global__ void explosion_horizontal(int * tablero, int anchura_tablero, int fila)
+{
+	int fila_hilo = threadIdx.y;
+	int columna_hilo = threadIdx.x;
+
+	if (fila_hilo == fila)
+	{
+		tablero[fila_hilo * anchura_tablero + columna_hilo] = 0;
+	}
+
+	__syncthreads();
+}
+
+__global__ void explosion_tnt(int * tablero, long tam_tablero, int filas, int columnas, int fila, int columna)
+{
+	int fila_hilo = threadIdx.y;
+	int columna_hilo = threadIdx.x;
+	int pos_hilo = fila_hilo * columnas + columna_hilo;//posición del hilo
+
+	//posicion elegida por el usuario
+	int pos_elegida = fila * columnas + columna;
+
+	//posiciones contiguas
+	int arriba = (fila - 1) * columnas + columna;
+	int abajo = (fila + 1) * columnas + columna;
+	int derecha = fila * columnas + columna + 1;
+	int izquierda = fila * columnas + columna - 1;
+	int arriba_izq = (fila - 1) * columnas + columna - 1;
+	int arriba_der = (fila - 1) * columnas + columna + 1;
+	int abajo_izq = (fila + 1) * columnas + columna - 1;
+	int abajo_der = (fila + 1) * columnas + columna + 1;
+
+	if ((pos_hilo == pos_elegida) || (pos_hilo == arriba) || (pos_hilo == abajo) || (pos_hilo == derecha) || (pos_hilo == izquierda))
+	{
+		tablero[pos_hilo] = 0;
+	}
+	else if ((pos_hilo == arriba_izq) || (pos_hilo == abajo_izq) || (pos_hilo == arriba_der) || (pos_hilo == abajo_der))
+	{
+		tablero[pos_hilo] = 0;
+	}
+}
+
