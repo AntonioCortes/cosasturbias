@@ -6,7 +6,7 @@
 #include <time.h>
 #include <stdlib.h>
 #include <windows.h>
-//#include "book.h"
+#include "book.h"
 
 #define AZUL 1
 #define ROJO 2
@@ -18,7 +18,7 @@
 #define BOMBAVER 8
 #define BOMBATNT 9
 #define BOMBAPUZZLE 10
-#define TILE_WIDTH 4
+//#define TILE_WIDTH 4
 
 void juego(int filas, int columnas, int num_colores, bool cargar_partida, FILE *& datos_partida, FILE *& archivo_matriz);
 void generar_matriz(int *& matriz, long tam_matriz, int num_colores);
@@ -29,8 +29,15 @@ void guardar_partida(int * matriz, int dificultad, int filas, int columnas,FILE 
 void comprobar_dimensiones(int filas, int columnas, bool & dimensiones_adecuadas);//comprueba si las dimensiones del tableropermiten correr en un bloque SM
 void jugar(int *tablero, int fil, int col, int size, int fila, int columna, int num_colores);
 void generarAleatorios(int *& matriz, int tam_matriz, int num_colores);
+bool es_bomba(int * matriz, int fila, int columna, int num_columnas, int &tipo_bomba);//comprueba si la posición elegida por el jugador corresponde a una bomba
+void explotar_vertical(int *& tablero, long tam_tablero, int filas, int columnas, int columna);//helper que ejecuta el kernel de la explosion de la bomba vertical
+void explotar_horizontal(int *& tablero, long tam_tablero, int filas, int columnas, int fila);//helper que ejecuta el kernel de la explosion de la bomba horizontal
+void explotar_tnt(int *& tablero, long tam_tablero, int filas, int columnas, int fila, int columna);
 
 __global__ void KernelJugar(int *tablero, int fila, int columna, int i, int j, int bomba, int color);
+__global__ void explosion_vertical(int * tablero, int anchura_tablero, int columna);
+__global__ void explosion_horizontal(int * tablero, int anchura_tablero, int fila);
+__global__ void explosion_tnt(int * tablero, long tam_tablero, int filas, int columnas, int fila, int columna);
 __device__ void comprobarBloques(int *tablero, int x, int y, int fila, int columna);
 __device__ void comprobarBloquesArriba(int *tablero, int x, int y, int fila, int columna);
 __device__ void comprobarBloquesDerecha(int *tablero, int x, int y, int fila, int columna);
@@ -40,10 +47,11 @@ __device__ void borrarArriba(int *tablero, int x, int y, int fila, int columna);
 __device__ void borrarAbajo(int *tablero, int x, int y, int fila, int columna);
 __device__ void borrarDerecha(int *tablero, int x, int y, int fila, int columna);
 __device__ void borrarIzquierda(int *tablero, int x, int y, int fila, int columna);
-__device__ void bombaVertical(int *tablero, int x, int y, int fila, int columna);
-__device__ void bombaHorizontal(int *tablero, int x, int y, int fila, int columna);
-__device__ void bombaTNT(int *tablero, int x, int y, int fila, int columna);
+//__device__ void bombaVertical(int *tablero, int x, int y, int fila, int columna);
+//__device__ void bombaHorizontal(int *tablero, int x, int y, int fila, int columna);
+//__device__ void bombaTNT(int *tablero, int x, int y, int fila, int columna);
 __device__ void bombaPuzzle(int *tablero, int x, int y, int fila, int columna, int color);
+
 
 int main(int argc, char ** argv)
 {
@@ -116,6 +124,7 @@ void juego(int filas,int columnas, int dificultad, bool cargar_partida, FILE *& 
 	int  * matriz = (int *) malloc(tam_matriz * sizeof(int));
 	int pos_fila = 0;
 	int pos_columna = 0;
+	int tipo_bomba = 0;
 	
 	if (cargar_partida)
 	{
@@ -150,7 +159,38 @@ void juego(int filas,int columnas, int dificultad, bool cargar_partida, FILE *& 
 				scanf("%i", &pos_fila);
 				printf("columna: ");
 				scanf("%i", &pos_columna);
-				jugar(matriz, filas, columnas, filas*columnas*sizeof(int), pos_fila, pos_columna, num_colores);
+
+				if (es_bomba(matriz, pos_fila, pos_columna, columnas, tipo_bomba))
+				{
+					switch (tipo_bomba)
+					{
+						case BOMBAVER:
+						{
+							explotar_vertical(matriz, tam_matriz, filas, columnas, pos_columna);
+							break;
+						}
+						case BOMBAHOR:
+						{
+							explotar_horizontal(matriz, tam_matriz, filas, columnas, pos_fila);
+							break;
+						}
+						case BOMBATNT:
+						{
+							explotar_tnt(matriz, tam_matriz, filas, columnas, pos_fila, pos_columna);
+							break;
+						}
+						case BOMBAPUZZLE:
+						{
+							break;
+						}
+						default:
+							break;
+					}
+				}
+				else
+				{
+					jugar(matriz, filas, columnas, filas*columnas*sizeof(int), pos_fila, pos_columna, num_colores);
+				}
 
 				break;
 			}
@@ -240,6 +280,11 @@ void dibujar_matriz(int * matriz, int filas, int columnas)
 			case 6:
 				SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 14);
 				break;
+			default:
+			{
+				SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 15);
+				break;
+			}
 			}
 
 			printf("%i   ", valor);
@@ -337,6 +382,21 @@ void cargar_matriz(int *& matriz, long tam_matriz, FILE *& archivo_matriz)
 	fclose(archivo_matriz);
 }
 
+bool es_bomba(int * matriz, int fila, int columna, int num_columnas, int &tipo_bomba)
+{
+	bool es_bomba = false;
+	int valor = matriz[fila * num_columnas + columna];
+
+	if ((valor == BOMBAHOR) || (valor == BOMBAVER) || (valor == BOMBATNT) || (valor == BOMBAPUZZLE))
+	{
+		es_bomba = true;
+		tipo_bomba = valor;
+	}
+
+	return es_bomba;
+}
+
+//
 void jugar(int *tablero, int fil, int col, int size, int fila, int columna, int num_colores){
 	//Este método lanzará el kernel de juego.
 	//Primero creamos la variable que va al device:
@@ -352,9 +412,85 @@ void jugar(int *tablero, int fil, int col, int size, int fila, int columna, int 
 	cudaFree(tableroD);
 	//Falta mostrarlo
 	dibujar_matriz(tablero, fil, col);
-	//cudaDeviceReset();
+	cudaDeviceReset();
 }
 
+void explotar_vertical(int *& tablero, long tam_tablero ,int filas, int columnas, int columna)
+{
+	int * tablero_d;
+
+	//reservar memoria
+	cudaMalloc(&tablero_d, tam_tablero * sizeof(int));
+	//copiar tablero al device
+	cudaMemcpy(tablero_d, tablero, tam_tablero * sizeof(int), cudaMemcpyHostToDevice);
+	//definir tamaño de grid y de bloque
+	dim3 DimGrid(1, 1);
+	dim3 DimBlock(filas, columnas);
+
+	explosion_vertical<<<DimGrid,DimBlock>>>(tablero_d, columnas, columna);
+
+	//copiar tablero al host
+	cudaMemcpy(tablero, tablero_d, tam_tablero * sizeof(int), cudaMemcpyDeviceToHost);
+
+	dibujar_matriz(tablero, filas, columnas);
+
+	//liberar memoria
+	cudaFree(tablero_d);
+	cudaDeviceReset();
+
+}
+
+void explotar_horizontal(int *& tablero, long tam_tablero, int filas, int columnas, int fila)
+{
+	int * tablero_d;
+
+	//reservar memoria
+	cudaMalloc(&tablero_d, tam_tablero * sizeof(int));
+	//copiar tablero al device
+	cudaMemcpy(tablero_d, tablero, tam_tablero * sizeof(int), cudaMemcpyHostToDevice);
+	//definir tamaño de grid y de bloque
+	dim3 DimGrid(1, 1);
+	dim3 DimBlock(filas, columnas);
+
+	explosion_horizontal << <DimGrid, DimBlock >> >(tablero_d, columnas, fila);
+
+	//copiar tablero al host
+	cudaMemcpy(tablero, tablero_d, tam_tablero * sizeof(int), cudaMemcpyDeviceToHost);
+
+	dibujar_matriz(tablero, filas, columnas);
+
+	//liberar memoria
+	cudaFree(tablero_d);
+	cudaDeviceReset();
+
+}
+
+void explotar_tnt(int *& tablero, long tam_tablero, int filas, int columnas, int fila, int columna)
+{
+	int * tablero_d;
+
+	//reservar memoria
+	cudaMalloc(&tablero_d, tam_tablero * sizeof(int));
+	//copiar tablero al device
+	cudaMemcpy(tablero_d, tablero, tam_tablero * sizeof(int), cudaMemcpyHostToDevice);
+	//definir tamaño de grid y de bloque
+	dim3 DimGrid(1, 1);
+	dim3 DimBlock(filas, columnas);
+
+	explosion_tnt << <DimGrid, DimBlock >> >(tablero_d,tam_tablero, filas, columnas, fila, columna);
+
+	//copiar tablero al host
+	cudaMemcpy(tablero, tablero_d, tam_tablero * sizeof(int), cudaMemcpyDeviceToHost);
+
+	dibujar_matriz(tablero, filas, columnas);
+
+	//liberar memoria
+	cudaFree(tablero_d);
+	cudaDeviceReset();
+
+}
+
+//KernelJugar << <DimGrid, DimBlock >> >(tableroD, fil, col, fila, columna, (rand() % 2 + 1), (rand() % num_colores + 1));
 __global__ void KernelJugar(int *tablero, int fila, int columna, int i, int j, int bomba, int color){ //fila y columna indican el máximo número en el tablero de juego, i y j las cordenadas del a eliminar.
 	//Si el hilo es el que ha seleccionado el jugador:
 	int x = threadIdx.x;
@@ -362,7 +498,7 @@ __global__ void KernelJugar(int *tablero, int fila, int columna, int i, int j, i
 	int numCeros = 0;
 	//Comprobamos primero que no sea una bomba.
 	if (x == i && y == j){
-		if (tablero[x*columna + y] == 7 ){
+		/*if (tablero[x*columna + y] == 7 ){
 			bombaHorizontal(tablero, x, y, fila, columna);
 		}
 		else if (tablero[x*columna + y] == 8){
@@ -371,7 +507,7 @@ __global__ void KernelJugar(int *tablero, int fila, int columna, int i, int j, i
 		else if (tablero[x*columna + y] == 9){
 			bombaTNT(tablero, x, y, fila, columna);
 		}
-		else if ((tablero[x*columna + y]) == 10) {
+		else*/ if ((tablero[x*columna + y]) == 10) {
 			//printf("Entro aquí \n");
 			bombaPuzzle(tablero, x, y, fila, columna, color);
 		}
@@ -541,7 +677,7 @@ __device__ void comprobarBloquesAbajo(int *tablero, int x, int y, int fila, int 
 	tablero[(x*columna) + y] = 0;//Si se llama a esta función, es que el elemento actual también debemos eliminarlo.
 }
 
-__device__ void bombaVertical(int *tablero, int x, int y, int fila, int columna){
+/*__device__ void bombaVertical(int *tablero, int x, int y, int fila, int columna){
 	tablero[(x*columna) + y] = 0;
 	if (x != fila - 1){
 		borrarAbajo(tablero, x + 1, y, fila, columna);
@@ -591,7 +727,7 @@ __device__ void bombaTNT(int *tablero, int x, int y, int fila, int columna){
 		tablero[(x*columna) + (y - 1)] = 0;
 	}
 
-}
+}*/
 __device__ void bombaPuzzle(int *tablero, int x, int y, int fila, int columna, int color){
 	tablero[(x*columna) + y] = 0;
 	for (int l = 0; l < fila*columna; l++)
@@ -629,3 +765,59 @@ __device__ void borrarIzquierda(int *tablero, int x, int y, int fila, int column
 		borrarIzquierda(tablero, x, y - 1, fila, columna);
 	}
 }
+
+__global__ void explosion_vertical(int * tablero, int anchura_tablero,int columna)
+{
+	int fila_hilo = threadIdx.y;
+	int columna_hilo = threadIdx.x;
+
+	if (columna_hilo == columna)
+	{
+		tablero[fila_hilo * anchura_tablero + columna_hilo] = 0;
+	}
+
+	__syncthreads();
+}
+
+__global__ void explosion_horizontal(int * tablero, int anchura_tablero, int fila)
+{
+	int fila_hilo = threadIdx.y;
+	int columna_hilo = threadIdx.x;
+
+	if (fila_hilo == fila)
+	{
+		tablero[fila_hilo * anchura_tablero + columna_hilo] = 0;
+	}
+
+	__syncthreads();
+}
+
+__global__ void explosion_tnt(int * tablero, long tam_tablero, int filas, int columnas, int fila, int columna)
+{
+	int fila_hilo = threadIdx.y;
+	int columna_hilo = threadIdx.x;
+	int pos_hilo = fila_hilo * columnas + columna_hilo;//posición del hilo
+
+	//posicion elegida por el usuario
+	int pos_elegida = fila * columnas + columna;
+
+	//posiciones contiguas
+	int arriba = (fila - 1) * columnas + columna;
+	int abajo = (fila + 1) * columnas + columna;
+	int derecha = fila * columnas + columna + 1;
+	int izquierda = fila * columnas + columna - 1;
+	int arriba_izq = (fila - 1) * columnas + columna - 1;
+	int arriba_der = (fila - 1) * columnas + columna + 1;
+	int abajo_izq = (fila + 1) * columnas + columna - 1;
+	int abajo_der = (fila + 1) * columnas + columna + 1;
+
+	if ((pos_hilo == pos_elegida) || (pos_hilo == arriba) || (pos_hilo == abajo) || (pos_hilo == derecha) || (pos_hilo == izquierda))
+	{
+		tablero[pos_hilo] = 0;
+	}
+	else if ((pos_hilo == arriba_izq) || (pos_hilo == abajo_izq) || (pos_hilo == arriba_der) || (pos_hilo == abajo_der))
+	{
+		tablero[pos_hilo] = 0;
+	}
+}
+
