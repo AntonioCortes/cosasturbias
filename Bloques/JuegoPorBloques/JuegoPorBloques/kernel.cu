@@ -424,8 +424,8 @@ void explotar_vertical(int *& tablero, long tam_tablero, int filas, int columnas
 	//copiar tablero al device
 	cudaMemcpy(tablero_d, tablero, tam_tablero * sizeof(int), cudaMemcpyHostToDevice);
 	//definir tamaño de grid y de bloque
-	dim3 DimGrid(1, 1);
-	dim3 DimBlock(columnas, filas);
+	dim3 DimGrid((filas + TILE_WIDTH - 1) / TILE_WIDTH, (columnas + TILE_WIDTH - 1) / TILE_WIDTH);
+	dim3 DimBlock(TILE_WIDTH, TILE_WIDTH);
 
 	explosion_vertical << <DimGrid, DimBlock >> >(tablero_d, columnas, columna);
 
@@ -449,8 +449,8 @@ void explotar_horizontal(int *& tablero, long tam_tablero, int filas, int column
 	//copiar tablero al device
 	cudaMemcpy(tablero_d, tablero, tam_tablero * sizeof(int), cudaMemcpyHostToDevice);
 	//definir tamaño de grid y de bloque
-	dim3 DimGrid(1, 1);
-	dim3 DimBlock(columnas, filas);
+	dim3 DimGrid((filas + TILE_WIDTH - 1) / TILE_WIDTH, (columnas + TILE_WIDTH - 1) / TILE_WIDTH);
+	dim3 DimBlock(TILE_WIDTH, TILE_WIDTH);
 
 	explosion_horizontal << <DimGrid, DimBlock >> >(tablero_d, columnas, fila);
 
@@ -474,8 +474,8 @@ void explotar_tnt(int *& tablero, long tam_tablero, int filas, int columnas, int
 	//copiar tablero al device
 	cudaMemcpy(tablero_d, tablero, tam_tablero * sizeof(int), cudaMemcpyHostToDevice);
 	//definir tamaño de grid y de bloque
-	dim3 DimGrid(1, 1);
-	dim3 DimBlock(columnas, filas);
+	dim3 DimGrid((filas + TILE_WIDTH - 1) / TILE_WIDTH, (columnas + TILE_WIDTH - 1) / TILE_WIDTH);
+	dim3 DimBlock(TILE_WIDTH, TILE_WIDTH);
 
 	explosion_tnt << <DimGrid, DimBlock >> >(tablero_d, tam_tablero, filas, columnas, fila, columna);
 
@@ -793,8 +793,8 @@ __device__ void borrarIzquierda(int *tablero, int x, int y, int fila, int column
 
 __global__ void explosion_vertical(int * tablero, int anchura_tablero, int columna)
 {
-	int fila_hilo = threadIdx.y;
-	int columna_hilo = threadIdx.x;
+	int columna_hilo = blockIdx.x*blockDim.x + threadIdx.x;
+	int fila_hilo = blockIdx.y*blockDim.y + threadIdx.y;
 
 	if (columna_hilo == columna)
 	{
@@ -806,8 +806,8 @@ __global__ void explosion_vertical(int * tablero, int anchura_tablero, int colum
 
 __global__ void explosion_horizontal(int * tablero, int anchura_tablero, int fila)
 {
-	int fila_hilo = threadIdx.y;
-	int columna_hilo = threadIdx.x;
+	int columna_hilo = blockIdx.x*blockDim.x + threadIdx.x;
+	int fila_hilo = blockIdx.y*blockDim.y + threadIdx.y;
 
 	if (fila_hilo == fila)
 	{
@@ -819,8 +819,8 @@ __global__ void explosion_horizontal(int * tablero, int anchura_tablero, int fil
 
 __global__ void explosion_tnt(int * tablero, long tam_tablero, int filas, int columnas, int fila, int columna)
 {
-	int fila_hilo = threadIdx.y;
-	int columna_hilo = threadIdx.x;
+	int columna_hilo = blockIdx.x*blockDim.x + threadIdx.x;
+	int fila_hilo = blockIdx.y*blockDim.y + threadIdx.y;
 	int pos_hilo = fila_hilo * columnas + columna_hilo;//posición del hilo
 
 	//posicion elegida por el usuario
