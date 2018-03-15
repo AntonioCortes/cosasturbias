@@ -18,7 +18,6 @@
 #define BOMBAVER 8
 #define BOMBATNT 9
 #define BOMBAPUZZLE 10
-//#define TILE_WIDTH 4
 
 void juego(int filas, int columnas, int num_colores, bool cargar_partida, FILE *& datos_partida, FILE *& archivo_matriz);
 void generar_matriz(int *& matriz, long tam_matriz, int num_colores);
@@ -45,16 +44,6 @@ __device__ void comprobarBloquesArriba(int *tablero, int x, int y, int fila, int
 __device__ void comprobarBloquesDerecha(int *tablero, int x, int y, int fila, int columna);
 __device__ void comprobarBloquesIzquierda(int *tablero, int x, int y, int fila, int columna);
 __device__ void comprobarBloquesAbajo(int *tablero, int x, int y, int fila, int columna);
-__device__ void borrarArriba(int *tablero, int x, int y, int fila, int columna);
-__device__ void borrarAbajo(int *tablero, int x, int y, int fila, int columna);
-__device__ void borrarDerecha(int *tablero, int x, int y, int fila, int columna);
-__device__ void borrarIzquierda(int *tablero, int x, int y, int fila, int columna);
-//__device__ void bombaVertical(int *tablero, int x, int y, int fila, int columna);
-//__device__ void bombaHorizontal(int *tablero, int x, int y, int fila, int columna);
-//__device__ void bombaTNT(int *tablero, int x, int y, int fila, int columna);
-__device__ void bombaPuzzle(int *tablero, int x, int y, int fila, int columna, int color);
-
-
 
 int main(int argc, char ** argv)
 {
@@ -220,6 +209,7 @@ void juego(int filas,int columnas, int dificultad, bool cargar_partida, FILE *& 
 	}
 }
 
+//comprueba si las dimensiones de la matriz introducida por el usuario caben en un bloque
 void comprobar_dimensiones(int filas, int columnas, bool & dimensiones_adecuadas)
 {
 	cudaDeviceProp propiedades_gpu;
@@ -239,6 +229,7 @@ void generar_matriz(int *& matriz, long tam_matriz, int num_colores)
 	}
 }
 
+//genera numeros aleatorios y rellena el tablero con ellos, en los huecos vacíos que quedan, despues de haber explotado algún bloque
 void generarAleatorios(int *& matriz, int tam_matriz, int num_colores){
 	for (int i = 0; i < tam_matriz; i++)
 	{
@@ -248,6 +239,7 @@ void generarAleatorios(int *& matriz, int tam_matriz, int num_colores){
 	}
 }
 
+//dibuja y muestra la matriz por pantalla
 void dibujar_matriz(int * matriz, int filas, int columnas)
 {
 	int valor = 0;
@@ -256,7 +248,15 @@ void dibujar_matriz(int * matriz, int filas, int columnas)
 
 	for (int i = 0; i < columnas; i++)
 	{
-		printf("%i   ", i);
+		if (i < 10)
+		{
+			printf("%i   ", i);
+		}
+		else if (i < 100)
+		{
+			printf("%i  ", i);
+		}
+		
 	}
 	printf("\n\n\n");
 
@@ -350,6 +350,7 @@ void dibujar_matriz(int * matriz, int filas, int columnas)
 
 }
 
+//guarda los datos de dificultad, numero de filas y de columnas en un fichero .txt y guarda la matriz que representa al tablero en un fichero .data
 void guardar_partida(int * matriz, int dificultad, int filas, int columnas, FILE *& archivo_matriz, FILE *& datos_partida)
 {
 	long tam_matriz = filas * columnas; 
@@ -382,7 +383,7 @@ void guardar_partida(int * matriz, int dificultad, int filas, int columnas, FILE
 }
 
 
-
+//carga los datos de dificultad, numero de columnas y numero de filas de la partida
 void cargar_datos(int &dificultad, int &filas, int &columnas, FILE *& datos_partida)
 {
 	if ((datos_partida = fopen("datos_partida.txt", "r")))
@@ -423,6 +424,7 @@ void cargar_datos(int &dificultad, int &filas, int &columnas, FILE *& datos_part
 	}
 }
 
+//carga la matriz que representa al tablero guardada en el fichero .data
 void cargar_matriz(int *& matriz, long tam_matriz, FILE *& archivo_matriz)
 {
 	if ((archivo_matriz = fopen("matriz.data", "rb")))
@@ -437,6 +439,7 @@ void cargar_matriz(int *& matriz, long tam_matriz, FILE *& archivo_matriz)
 	fclose(archivo_matriz);
 }
 
+//devuelve true si la casilla indicada es una bomba y guarda el tipo de bomba en la variable tipo_bomba
 bool es_bomba(int * matriz, int fila, int columna, int num_columnas, int &tipo_bomba)
 {
 	bool es_bomba = false;
@@ -451,12 +454,12 @@ bool es_bomba(int * matriz, int fila, int columna, int num_columnas, int &tipo_b
 	return es_bomba;
 }
 
+//helper para la ejecuciín del KernelJugar
 void jugar(int *tablero, int fil, int col, int size, int fila, int columna, int num_colores, int * num_vidas){
 	//Este método lanzará el kernel de juego.
 	//Primero creamos la variable que va al device:
 	int* tableroD;
 	int * num_vidasD;
-
 
 	//Reservamos memoria 
 	cudaMalloc(&tableroD, size);
@@ -484,6 +487,7 @@ void jugar(int *tablero, int fil, int col, int size, int fila, int columna, int 
 	cudaDeviceReset();
 }
 
+//helper para la ejecución del kernel explosion_vertical
 void explotar_vertical(int *& tablero, long tam_tablero ,int filas, int columnas, int columna)
 {
 	int * tablero_d;
@@ -509,6 +513,7 @@ void explotar_vertical(int *& tablero, long tam_tablero ,int filas, int columnas
 
 }
 
+//helper para la ejecucion del kernel explotar_horizontal
 void explotar_horizontal(int *& tablero, long tam_tablero, int filas, int columnas, int fila)
 {
 	int * tablero_d;
@@ -534,6 +539,7 @@ void explotar_horizontal(int *& tablero, long tam_tablero, int filas, int column
 
 }
 
+//helper para la ejecucion del kernel explosion_tnt
 void explotar_tnt(int *& tablero, long tam_tablero, int filas, int columnas, int fila, int columna)
 {
 	int * tablero_d;
@@ -559,6 +565,7 @@ void explotar_tnt(int *& tablero, long tam_tablero, int filas, int columnas, int
 
 }
 
+//helper para la ejecucion del kernel explosion_puzle
 void explotar_puzle(int *& tablero, long tam_tablero, int filas, int columnas, int fila, int columna, int num_colores)
 {
 	int * tablero_d;
@@ -590,47 +597,34 @@ __global__ void KernelJugar(int *tablero, int fila, int columna, int i, int j, i
 	int x = threadIdx.x;
 	int y = threadIdx.y;
 	int numCeros = 0;
-	//Comprobamos primero que no sea una bomba.
-	if (x == i && y == j){
-		/*if (tablero[x*columna + y] == 7 ){
-			bombaHorizontal(tablero, x, y, fila, columna);
-		}
-		else if (tablero[x*columna + y] == 8){
-			bombaVertical(tablero, x, y, fila, columna);
-		}
-		else if (tablero[x*columna + y] == 9){
-			bombaTNT(tablero, x, y, fila, columna);
-		}
-		else*/ if ((tablero[x*columna + y]) == 10) {
-			//printf("Entro aquí \n");
-			bombaPuzzle(tablero, x, y, fila, columna, color);
-		}
-		else{
-			//Ejecutará el comprobar los bloques
-			comprobarBloques(tablero, x, y, fila, columna, num_vidas);
-			for (int l = 0; l < fila*columna; l++)
-			{
-				if (tablero[l] == 0){
-					numCeros++;
-				}
+
+	if (x == i && y == j){ //si el hilo se corresponde con la casilla elegida por el jugador
+
+		comprobarBloques(tablero, x, y, fila, columna, num_vidas); //comprueba si los bloques 
+
+		for (int l = 0; l < fila*columna; l++)
+		{
+			if (tablero[l] == 0){
+				numCeros++;
 			}
-			printf("Num ceros: %d \n", numCeros);
-			if (numCeros >= 7){
-				tablero[x*fila + y] = BOMBAPUZZLE;
+		}
+
+		if (numCeros >= 7){
+			tablero[x*fila + y] = BOMBAPUZZLE;
+		}
+		else if (numCeros == 6){
+			tablero[x*fila + y] = BOMBATNT;
+		}
+		else if (numCeros >= 4){
+			if (bomba == 1){
+				tablero[x*columna + y] = BOMBAHOR;
 			}
-			else if (numCeros == 6){
-				tablero[x*fila + y] = BOMBATNT;
-			}
-			else if (numCeros >= 4){
-				if (bomba == 1){
-					tablero[x*columna + y] = BOMBAHOR;
-				}
-				else{
-					tablero[x*columna + y] = BOMBAVER;
-				}
+			else{
+				tablero[x*columna + y] = BOMBAVER;
 			}
 		}
 	}
+	
 	__syncthreads();
 	for (int i = 0; i <= fila; i++){
 		if (x > 0){
@@ -641,7 +635,6 @@ __global__ void KernelJugar(int *tablero, int fila, int columna, int i, int j, i
 		}
 		__syncthreads();
 	}
-
 }
 
 
@@ -770,95 +763,6 @@ __device__ void comprobarBloquesAbajo(int *tablero, int x, int y, int fila, int 
 		//Si se cumple llamo a eliminar abajo.
 	}
 	tablero[(x*columna) + y] = 0;//Si se llama a esta función, es que el elemento actual también debemos eliminarlo.
-}
-
-/*__device__ void bombaVertical(int *tablero, int x, int y, int fila, int columna){
-	tablero[(x*columna) + y] = 0;
-	if (x != fila - 1){
-		borrarAbajo(tablero, x + 1, y, fila, columna);
-	}
-	if (x != 0){
-		borrarArriba(tablero, x - 1, y, fila, columna);
-	}
-}
-
-__device__ void bombaHorizontal(int *tablero, int x, int y, int fila, int columna){
-	tablero[(x*columna) + y] = 0;
-	if (y != columna - 1){
-		borrarDerecha(tablero, x, y + 1, fila, columna);
-	}
-	if (y != 0){
-		borrarIzquierda(tablero, x, y - 1, fila, columna);
-	}
-}
-
-__device__ void bombaTNT(int *tablero, int x, int y, int fila, int columna){
-	tablero[(x*columna) + y] = 0;
-	if (x != fila - 1){//Abajo
-		tablero[((x + 1)*columna) + y] = 0;
-		//AbajoDerecha
-		if (y != columna - 1){
-			tablero[((x + 1)*columna) + (y + 1)] = 0;
-		}//AbajoIzquierda
-		if (y != 0){
-			tablero[((x + 1)*columna) + (y - 1)] = 0;
-		}
-
-	}
-	if (x != 0){
-		tablero[((x - 1)*columna) + y] = 0;
-		//ArribaDerecha
-		if (y != columna - 1){
-			tablero[((x - 1)*columna) + (y + 1)] = 0;
-		}//ArribaIzquierda
-		if (y != 0){
-			tablero[((x - 1)*columna) + (y - 1)] = 0;
-		}
-	}
-	if (y != columna - 1){
-		tablero[(x*columna) + (y + 1)] = 0;
-	}
-	if (y != 0){
-		tablero[(x*columna) + (y - 1)] = 0;
-	}
-
-}*/
-__device__ void bombaPuzzle(int *tablero, int x, int y, int fila, int columna, int color){
-	tablero[(x*columna) + y] = 0;
-	for (int l = 0; l < fila*columna; l++)
-	{
-		if (tablero[l] == color){
-			printf("He puesto un color a O %d \n", color);
-			tablero[l] = 0;
-		}
-	}
-}
-__device__ void borrarAbajo(int *tablero, int x, int y, int fila, int columna){
-	tablero[(x*columna) + y] = 0;
-	if (x + 1 <= fila - 1){//Abajo
-		borrarAbajo(tablero, x + 1, y, fila, columna);
-	}
-}
-
-__device__ void borrarArriba(int *tablero, int x, int y, int fila, int columna){
-	tablero[(x*columna) + y] = 0;
-	if (x - 1 >= 0){//Arriba
-		borrarAbajo(tablero, x - 1, y, fila, columna);
-	}
-}
-
-__device__ void borrarDerecha(int *tablero, int x, int y, int fila, int columna){
-	tablero[(x*columna) + y] = 0;
-	if (y + 1 != columna - 1){
-		borrarDerecha(tablero, x, y + 1, fila, columna);
-	}
-}
-
-__device__ void borrarIzquierda(int *tablero, int x, int y, int fila, int columna){
-	tablero[(x*columna) + y] = 0;
-	if (y - 1 != 0){
-		borrarIzquierda(tablero, x, y - 1, fila, columna);
-	}
 }
 
 __global__ void explosion_vertical(int * tablero, int anchura_tablero,int columna)
