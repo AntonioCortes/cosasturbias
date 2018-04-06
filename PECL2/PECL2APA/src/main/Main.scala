@@ -17,20 +17,16 @@ object Main
     juego(tablero, numFilas, numColumnas, dificultad, numVidas)
         
   }
-  
+  def poner(pos:Int,color:Int,tablero:List[Int]): List[Int] = {
+  			if (tablero.isEmpty) Nil
+  			else if (pos==0) color::tablero.tail //else if (pos==0) color::tablero.tail
+  			else tablero.head::poner(pos-1,color,tablero.tail)
+  }
   def crearLista(tam: Int, numColores: Int): List[Int] = tam match
  	{
  		case 0 => Nil
  		case _ => (Random.nextInt(numColores) + 1)::crearLista(tam -1, numColores)
  	}                                         
- 	
- 	def poner(posicion: Int, color: Int, tablero: List[Int]): List[Int] =
- 	{
- 		if(tablero.isEmpty) Nil
- 		else if(posicion == 1) color::tablero.tail
- 		else tablero.head::poner(posicion - 1, color, tablero)
- 	}        
-
  	def pedirDificultad(): Int = 
 	{
 		println("Introduzca la dificultad (1/2/3):")
@@ -138,4 +134,42 @@ object Main
 			columna
 		}
 	}
+  //Funcion que comprubeba si el elemento
+ def comprobarElementoArriba(pos:Int,tablero:List[Int], width:Int): List[Int] ={
+ 		if ((pos-width>0) && (tablero(pos)==tablero(pos-width))){
+ 							comprobarElementoArriba(pos+width,poner(pos,0,tablero), width)}
+ 		else if(pos==0){ //Si he llegado hasta la pos 0 es que el de abajo era igual que yo, por lo que me pongo a 0
+ 								poner(pos,0,tablero)}
+ 		else tablero
+ }                                                //> comprobarElementoArriba: (pos: Int, tablero: List[Int], width: Int)List[Int
+                                                  //| ]
+                                                  
+                                                  
+
+ 
+ def comprobarElementoIzquierda(pos:Int,tablero:List[Int],width:Int) : List[Int] = {
+ 		if ((pos-1>0) && (tablero(pos)==tablero(pos-1))){
+ 							comprobarElementoArriba(pos+1,poner(pos,0,tablero), width)}
+ 		else if(pos==0){ //Si he llegado hasta la pos 0 es que el de abajo era igual que yo, por lo que me pongo a 0
+ 								poner(pos,0,tablero)}
+ 		else tablero
+ }                                                //> comprobarElementoIzquierda: (pos: Int, tablero: List[Int], width: Int)List[
+                                                  //| Int]
+ 
+ 
+ def comprobarElementoDerecha(pos:Int,tablero:List[Int],width:Int): List[Int] = {
+ 		if ((pos+1<tablero.length) && (tablero(pos)==tablero(pos+1))){
+ 							comprobarElementoArriba(pos+1,poner(pos,0,tablero), width)}
+ 		else if(pos==tablero.length){ //Si he llegado hasta la pos 0 es que el de abajo era igual que yo, por lo que me pongo a 0
+ 								poner(pos,0,tablero)}
+ 		else tablero
+ }                                                //> comprobarElementoDerecha: (pos: Int, tablero: List[Int], width: Int)List[In
+                                                  //| t]
+ def comprobarElementoAbajo(pos:Int,tablero:List[Int], width:Int): List[Int] = {
+ 		if ((pos+width<tablero.length) && (tablero(pos)==tablero(pos+width))){
+ 							comprobarElementoArriba(pos+width,poner(pos,0,tablero), width)}
+ 		else if(pos==(tablero.length-1)){ //Si he llegado hasta la pos 0 es que el de abajo era igual que yo, por lo que me pongo a 0
+ 								poner(pos,0,tablero)}
+ 		else tablero
+ } 
 }
