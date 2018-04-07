@@ -99,8 +99,44 @@ object Main
 		
 		val fila = pedirFila(numFilas)
 		val columna = pedirColumna(numColumnas)
+		val pos = (fila*numColumnas) + columna
 		
-		juego(tablero, numFilas, numColumnas, dificultad, numVidas)		
+		val tablero1= comprobarElementoArriba(pos, tablero, numColumnas)
+		val tablero2= comprobarElementoDerecha(pos, tablero1, numColumnas)
+		val tablero3= comprobarElementoIzquierda(pos, tablero2, numColumnas)
+		val tablero4= comprobarElementoAbajo(pos, tablero3, numColumnas)
+		dibujarTablero(tablero4, numColumnas, 0)
+		quitarCeros(tablero4, 0)
+		juego(tablero4, numFilas, numColumnas, dificultad, numVidas)		
+	}
+	def quitarCeros(tablero:List[Int], pos:Int): List[Int] = {
+  val r = scala.util.Random
+  	if (tablero.length == pos) tablero
+  	else if(tablero(pos)==0){
+  		quitarCeros(poner(pos,(1+ r.nextInt((4-1)+1)),tablero), pos+1)
+  		}
+  else quitarCeros(tablero, pos+1)
+  }
+	
+	
+	
+	def algoritmoEstrella(tablero:List[Int],width:Int,lpos:List[Int],pos:Int):List[Int] = {
+	  val posArriba = comprobarIguales(lpos.head, lpos.head-width, tablero)
+	  val posAbajo = comprobarIguales(lpos.head, lpos.head+width, tablero)
+	  val posDerecha = comprobarIguales(lpos.head, lpos.head+1, tablero)
+	  val posIzquierda = comprobarIguales(lpos.head, lpos.head-1, tablero)
+	  val lposaux = posArriba::posAbajo::posDerecha::posIzquierda::lpos
+	  val lposaux2 = lposaux.filter(_ > -1)
+	  val lposaux3 = lposaux2.distinct
+	  if (lposaux3==lpos) lposaux3
+	  else algoritmoEstrella(tablero, width, lpos, pos+1)
+	}
+	
+	
+	// Función que devuelve la posición si esta es igual, o -1 si no es igual. El -1 lo eliminará antes de quitarRepetidos.
+	def comprobarIguales(pos:Int,pos2:Int,tablero:List[Int]): Int = {
+	  if(tablero(pos)==tablero(pos2)) pos2
+	  else -1
 	}
 	
 	def pedirFila(numFilas: Int): Int =
