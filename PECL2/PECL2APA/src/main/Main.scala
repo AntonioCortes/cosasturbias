@@ -67,6 +67,8 @@ object Main
 	
 	def auxDibujarTablero(num: Int, numColumnas: Int): Unit =
 	{
+	  if(num == 0) print(s"    ")
+	  
 		if((num < numColumnas) && (num < 10))
 		{
 			print(s"$num  ")
@@ -77,16 +79,22 @@ object Main
 			print(s"$num ")
 			auxDibujarTablero(num + 1, numColumnas)
 		}
+	  
+	  if(num == (numColumnas - 1)) print("\n\n0   ")
 	}
 	
+	def auxFila(lista: List[Int], numColumnas: Int, fila: Int): Int = if(lista.length % numColumnas == 0) fila + 1 else fila
+	
 	def dibujarTablero(tablero: List[Int], numColumnas: Int, fila: Int): Unit =
-	{
+	{		  
 		if(tablero.nonEmpty)
 		{
 			print(tablero.head + "  ")
-			if(tablero.tail.length % numColumnas == 0) println()
+			
+			if(tablero.tail.length % numColumnas == 0 && tablero.tail.nonEmpty) print(s"\n${fila + 1}   ")
+			else if(tablero.tail.isEmpty) println()
 		}
-		if(tablero.nonEmpty) dibujarTablero(tablero.tail, numColumnas, fila + 1)
+		if(tablero.nonEmpty) dibujarTablero(tablero.tail, numColumnas, auxFila(tablero.tail, numColumnas, fila))
 	}
 
 	def juego(tablero: List[Int],numFilas: Int, numColumnas: Int, dificultad: Int, numVidas: Int): Unit =
@@ -94,8 +102,7 @@ object Main
 	  println()
 		print(s"Vidas: $numVidas Dificultad: $dificultad\n")
 		
-		auxDibujarTablero(0, numColumnas)
-		print("\n\n")
+		auxDibujarTablero(0, numColumnas)		
 		dibujarTablero(tablero, numColumnas, 0)
 		
 		val fila = pedirFila(numFilas)

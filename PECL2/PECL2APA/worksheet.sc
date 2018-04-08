@@ -1,21 +1,21 @@
 import scala.io.StdIn
 import util.Random
 
-object worksheet
+object worksheet extends App
 {
 
   def crearLista(tam: Int, numColores: Int): List[Int] = tam match
  	{
  		case 0 => Nil
  		case _ => (Random.nextInt(numColores) + 1)::crearLista(tam -1, numColores)
- 	}                                         //> crearLista: (tam: Int, numColores: Int)List[Int]
+ 	}
  	
  	def poner(posicion: Int, color: Int, tablero: List[Int]): List[Int] =
  	{
  		if(tablero.isEmpty) Nil
  		else if(posicion == 1) color::tablero.tail
  		else tablero.head::poner(posicion - 1, color, tablero)
- 	}                                         //> poner: (posicion: Int, color: Int, tablero: List[Int])List[Int]
+ 	}
 	
 	def pedirDificultad(): Int =
 	{
@@ -32,28 +32,28 @@ object worksheet
     	pedirDificultad()
     }
     
-	}                                         //> pedirDificultad: ()Int
+	}
 	
 	def asignarNumFilas(dificultad: Int): Int = dificultad match
 	{
 		case 1 => 7
 		case 2 => 11
 		case 3 => 15
-	}                                         //> asignarNumFilas: (dificultad: Int)Int
+	}
 	
 	def asignarNumColumnas(dificultad: Int): Int = dificultad match
 	{
 		case 1 => 9
 		case 2 => 17
 		case 3 => 27
-	}                                         //> asignarNumColumnas: (dificultad: Int)Int
+	}
 	
 	def asignarNumColores(dificultad: Int): Int = dificultad match
 	{
 		case 1 => 4
 		case 2 => 5
 		case 3 => 6
-	}                                         //> asignarNumColores: (dificultad: Int)Int
+	}
 	
 	def auxDibujarTablero(num: Int, numColumnas: Int): Unit =
 	{
@@ -67,7 +67,7 @@ object worksheet
 			print(s"$num ")
 			auxDibujarTablero(num + 1, numColumnas)
 		}
-	}                                         //> auxDibujarTablero: (num: Int, numColumnas: Int)Unit
+	}
 	
 	def dibujarTablero(tablero: List[Int], numColumnas: Int, fila: Int): Unit =
 	{
@@ -77,7 +77,7 @@ object worksheet
 			if(tablero.tail.length % numColumnas == 0) println()
 		}
 		if(tablero.nonEmpty) dibujarTablero(tablero.tail, numColumnas, fila + 1)
-	}                                         //> dibujarTablero: (tablero: List[Int], numColumnas: Int, fila: Int)Unit
+	}
 
 	def juego(tablero: List[Int],numFilas: Int, numColumnas: Int, dificultad: Int, numVidas: Int): Unit =
 	{
@@ -92,8 +92,7 @@ object worksheet
 		val columna = pedirColumna(numColumnas)
 		
 		juego(tablero, numFilas, numColumnas, dificultad, numVidas)
-	}                                         //> juego: (tablero: List[Int], numFilas: Int, numColumnas: Int, dificultad: In
-                                                  //| t, numVidas: Int)Unit
+	}
 	
 	def pedirFila(numFilas: Int): Int =
 	{
@@ -109,7 +108,7 @@ object worksheet
 		{
 			fila
 		}
-	}                                         //> pedirFila: (numFilas: Int)Int
+	}
 	
 	def pedirColumna(numColumnas: Int): Int =
 	{
@@ -125,6 +124,15 @@ object worksheet
 		{
 			columna
 		}
-	}                                         //> pedirColumna: (numColumnas: Int)Int
+	}
+	
+	val dificultad = pedirDificultad()
+  val numFilas = asignarNumFilas(dificultad)
+  val numColumnas = asignarNumColumnas(dificultad)
+  val numColores = asignarNumColores(dificultad)
+  val numVidas = 5
+  val tablero = crearLista(numFilas * numColumnas, numColores)
+  println("esto es el worksheet")
+  juego(tablero, numFilas, numColumnas, dificultad, numVidas)
                                                   
 }
