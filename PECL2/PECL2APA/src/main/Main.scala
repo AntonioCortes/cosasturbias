@@ -1,23 +1,20 @@
 package main
-//Hola soy Flavius
-//Hola Soy Antonio
+
+
 import scala.io.StdIn
 import util.Random
 
-object Main 
+object Main  extends App
 {
-  def main(args: Array [String]): Unit = 
-  { 
-    val dificultad = pedirDificultad()
-    val numFilas = asignarNumFilas(dificultad)
-    val numColumnas = asignarNumColumnas(dificultad)
-    val numColores = asignarNumColores(dificultad)
-    val numVidas = 5
-    val tablero = crearLista(numFilas * numColumnas, numColores)
+  val dificultad = pedirDificultad()
+  val numFilas = asignarNumFilas(dificultad)
+  val numColumnas = asignarNumColumnas(dificultad)
+  val numColores = asignarNumColores(dificultad)
+  val numVidas = 5
+  val tablero = crearLista(numFilas * numColumnas, numColores)
     
-    juego(tablero, numFilas, numColumnas, dificultad, numVidas)
-        
-  }
+  juego(tablero, numFilas, numColumnas, dificultad, numVidas)
+  
   def poner(pos:Int,color:Int,tablero:List[Int]): List[Int] = {
   			if (tablero.isEmpty) Nil
   			else if (pos==0) color::tablero.tail //else if (pos==0) color::tablero.tail
@@ -65,45 +62,56 @@ object Main
 		case 3 => 6
 	}
 	
-	def auxDibujarTablero(num: Int, numColumnas: Int): Unit =
-	{
-	  if(num == 0) print(s"    ")
-	  
-		if((num < numColumnas) && (num < 10))
-		{
-			print(s"$num  ")
-			auxDibujarTablero(num + 1, numColumnas)
-		}
-		else if(num < numColumnas)
-		{
-			print(s"$num ")
-			auxDibujarTablero(num + 1, numColumnas)
-		}
-	  
-	  if(num == (numColumnas - 1)) print("\n\n0   ")
-	}
-	
 	def auxFila(lista: List[Int], numColumnas: Int, fila: Int): Int = if(lista.length % numColumnas == 0) fila + 1 else fila
-	
-	def dibujarTablero(tablero: List[Int], numColumnas: Int, fila: Int): Unit =
-	{		  
-		if(tablero.nonEmpty)
+
+	def dibujarTablero(tablero: List[Int], numColumnas: Int, fila: Int, columna: Int, dibujarColumnas: Boolean): Unit =
+	{	
+	  if (dibujarColumnas)
+	  {
+	    if(columna == 0) print(s"    ")
+	  
+	    if(columna == numColumnas)
+	    {
+	      print("\n\n0   ")
+	      dibujarTablero(tablero, numColumnas, fila, columna, false)
+	    }
+	    else if((columna < numColumnas) && (columna < 10))
+		  {
+			  print(s"$columna  ")
+			  
+			  
+			  dibujarTablero(tablero, numColumnas, fila, columna + 1, true)
+		  }
+		  else if(columna < numColumnas)
+		  {
+			  print(s"$columna ")
+			  dibujarTablero(tablero, numColumnas, fila, columna + 1, true)
+		  }
+	  }
+	  else if(tablero.nonEmpty)
 		{
 			print(tablero.head + "  ")
 			
-			if(tablero.tail.length % numColumnas == 0 && tablero.tail.nonEmpty) print(s"\n${fila + 1}   ")
-			else if(tablero.tail.isEmpty) println()
+			if(tablero.tail.length % numColumnas == 0 && tablero.tail.nonEmpty) 
+			{
+			  if(fila + 1 < 10) print(s"\n${fila + 1}   ")
+			  else print(s"\n${fila + 1}  ")
+			}
+			
+			dibujarTablero(tablero.tail, numColumnas, auxFila(tablero.tail, numColumnas, fila), columna,false)
 		}
-		if(tablero.nonEmpty) dibujarTablero(tablero.tail, numColumnas, auxFila(tablero.tail, numColumnas, fila))
+		else
+		{
+		  println()
+		}
 	}
 
 	def juego(tablero: List[Int],numFilas: Int, numColumnas: Int, dificultad: Int, numVidas: Int): Unit =
 	{
 	  println()
 		print(s"Vidas: $numVidas Dificultad: $dificultad\n")
-		
-		auxDibujarTablero(0, numColumnas)		
-		dibujarTablero(tablero, numColumnas, 0)
+			
+		dibujarTablero(tablero, numColumnas, 0, 0, true)
 		
 		val fila = pedirFila(numFilas)
 		val columna = pedirColumna(numColumnas)
@@ -142,6 +150,7 @@ object Main
 			columna
 		}
 	}
+	
   //Funcion que comprubeba si el elemento
  def comprobarElementoArriba(pos:Int,tablero:List[Int], width:Int): List[Int] ={
  		if ((pos-width>0) && (tablero(pos)==tablero(pos-width))){
