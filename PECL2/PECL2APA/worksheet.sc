@@ -3,6 +3,34 @@ import util.Random
 
 object worksheet
 {
+	def bajarElemento(numColores: Int, fila: Int, columna: Int, numColumnas: Int, tablero: List[Int]): List[Int] =
+	{
+		val posicion = fila * numColumnas + columna
+		val arriba = fila - 1 * numColumnas + columna
+		
+		if((fila == 0) && (tablero(posicion) == 0))
+		{
+			val color = Random.nextInt(numColores) + 1
+			
+			poner(posicion, color, tablero)
+		}
+		else
+		{
+			if(tablero(arriba) == 0)
+			{
+				bajarElemento(numColores, fila - 1, columna, numColumnas, tablero)
+			}
+			else if(tablero(posicion) == 0)
+			{
+				poner(posicion, tablero(arriba), tablero)
+			}
+			else
+			{
+				tablero
+			}
+		}
+	}    
+
   def poner(pos:Int,color:Int,tablero:List[Int]): List[Int] = {
   			if (tablero.isEmpty) Nil
   			else if (pos==0) color::tablero.tail //else if (pos==0) color::tablero.tail
