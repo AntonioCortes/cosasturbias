@@ -112,26 +112,48 @@ object Main  extends App
 		print(s"Vidas: $numVidas Dificultad: $dificultad\n")
 			
 		dibujarTablero(tablero, numColumnas, 0, 0, true)
+		
+		val columa = pedirColumna(numColumnas)
+		val fila = pedirFila(numFilas)
+		val pos= fila*numColumnas+columa
+		
+		val listaMuerte = algoritmoEstrella(tablero, numColumnas, List[Int](), pos)
+		println(listaMuerte)
   }
 	
 	
 	
 	def algoritmoEstrella(tablero:List[Int],width:Int,lpos:List[Int],pos:Int):List[Int] = {
-	  val posArriba = comprobarIguales(lpos.head, lpos.head-width, tablero)
-	  val posAbajo = comprobarIguales(lpos.head, lpos.head+width, tablero)
-	  val posDerecha = comprobarIguales(lpos.head, lpos.head+1, tablero)
-	  val posIzquierda = comprobarIguales(lpos.head, lpos.head-1, tablero)
-	  val lposaux = posArriba::posAbajo::posDerecha::posIzquierda::lpos
+	  if (pos>lpos.length) lpos
+	  else{
+	  val posArriba = comprobarIgualesArriba(pos,tablero,width)
+	  val posAbajo = comprobarIgualesAbajo(lpos.head,tablero,width)
+	  val posDerecha = comprobarIgualesDerecha(lpos.head, lpos.head+1, tablero,width)
+	  val posIzquierda = comprobarIgualesIzquierda(lpos.head, lpos.head-1, tablero,width)
+	  val lposaux = lpos:+posArriba:+posAbajo:+posDerecha:+posIzquierda
 	  val lposaux2 = lposaux.filter(_ > -1)
 	  val lposaux3 = lposaux2.distinct
 	  if (lposaux3==lpos) lposaux3
 	  else algoritmoEstrella(tablero, width, lpos, pos+1)
+	  }
 	}
 	
 	
 	// Función que devuelve la posición si esta es igual, o -1 si no es igual. El -1 lo eliminará antes de quitarRepetidos.
-	def comprobarIguales(pos:Int,pos2:Int,tablero:List[Int]): Int = {
-	  if(tablero(pos)==tablero(pos2)) pos2
+	def comprobarIgualesArriba(pos:Int,tablero:List[Int],width:Int): Int = {
+	  if((pos-width>0) && (tablero(pos)==tablero(pos-width))) pos-width
+	  else -1
+	}
+	def comprobarIgualesAbajo(pos:Int,tablero:List[Int],width:Int): Int = {
+	  if((pos+width<tablero.length) && (tablero(pos)==tablero(pos+width))) pos+width
+	  else -1
+	}
+	def comprobarIgualesDerecha(pos:Int,tablero:List[Int],width:Int): Int = {
+	  if((pos+1< tablero.length) && (tablero(pos)==tablero(pos2))) pos2
+	  else -1
+	}
+	def comprobarIgualesIzquierda(pos:Int,pos2:Int,tablero:List[Int],width:Int): Int = {
+	  if((pos-1>0) && (tablero(pos)==tablero(pos2))) pos2
 	  else -1
 	}
 	
@@ -166,43 +188,4 @@ object Main  extends App
 			columna
 		}
 	}
-	
-  //Funcion que comprubeba si el elemento
- def comprobarElementoArriba(pos:Int,tablero:List[Int], width:Int): List[Int] ={
- 		if ((pos-width>0) && (tablero(pos)==tablero(pos-width))){
- 							comprobarElementoArriba(pos+width,poner(pos,0,tablero), width)}
- 		else if(pos==0){ //Si he llegado hasta la pos 0 es que el de abajo era igual que yo, por lo que me pongo a 0
- 								poner(pos,0,tablero)}
- 		else tablero
- }                                                //> comprobarElementoArriba: (pos: Int, tablero: List[Int], width: Int)List[Int
-                                                  //| ]
-                                                  
-                                                  
-
- 
- def comprobarElementoIzquierda(pos:Int,tablero:List[Int],width:Int) : List[Int] = {
- 		if ((pos-1>0) && (tablero(pos)==tablero(pos-1))){
- 							comprobarElementoArriba(pos+1,poner(pos,0,tablero), width)}
- 		else if(pos==0){ //Si he llegado hasta la pos 0 es que el de abajo era igual que yo, por lo que me pongo a 0
- 								poner(pos,0,tablero)}
- 		else tablero
- }                                                //> comprobarElementoIzquierda: (pos: Int, tablero: List[Int], width: Int)List[
-                                                  //| Int]
- 
- 
- def comprobarElementoDerecha(pos:Int,tablero:List[Int],width:Int): List[Int] = {
- 		if ((pos+1<tablero.length) && (tablero(pos)==tablero(pos+1))){
- 							comprobarElementoArriba(pos+1,poner(pos,0,tablero), width)}
- 		else if(pos==tablero.length){ //Si he llegado hasta la pos 0 es que el de abajo era igual que yo, por lo que me pongo a 0
- 								poner(pos,0,tablero)}
- 		else tablero
- }                                                //> comprobarElementoDerecha: (pos: Int, tablero: List[Int], width: Int)List[In
-                                                  //| t]
- def comprobarElementoAbajo(pos:Int,tablero:List[Int], width:Int): List[Int] = {
- 		if ((pos+width<tablero.length) && (tablero(pos)==tablero(pos+width))){
- 							comprobarElementoArriba(pos+width,poner(pos,0,tablero), width)}
- 		else if(pos==(tablero.length-1)){ //Si he llegado hasta la pos 0 es que el de abajo era igual que yo, por lo que me pongo a 0
- 								poner(pos,0,tablero)}
- 		else tablero
- } 
 }
