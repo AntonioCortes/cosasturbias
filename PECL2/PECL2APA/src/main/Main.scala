@@ -110,35 +110,48 @@ object Main  extends App
 	{
 	  println()
 		print(s"Vidas: $numVidas Dificultad: $dificultad\n")
-			
 		dibujarTablero(tablero, numColumnas, 0, 0, true)
-		
 		val columa = pedirColumna(numColumnas)
 		val fila = pedirFila(numFilas)
 		val pos= fila*numColumnas+columa
-		
-		val listaMuerte = algoritmoEstrella(tablero, numColumnas, List[Int](), pos)
+		val listpos= List[Int]()
+		val listaMuerte = algoritmoEstrella(tablero, numColumnas, listpos, pos)
 		println(listaMuerte)
+		val tableroFin=eliminarIguales(tablero, listaMuerte)
+		dibujarTablero(tableroFin, numColumnas, 0, 0, true)
+		juego(tableroFin, numFilas, numColumnas, dificultad, numVidas)
   }
 	
 	
 	
 	def algoritmoEstrella(tablero:List[Int],width:Int,lpos:List[Int],pos:Int):List[Int] = {
-	  if (pos>lpos.length) lpos
-	  else{
-	  val posArriba = comprobarIgualesArriba(pos,tablero,width)
-	  val posAbajo = comprobarIgualesAbajo(lpos.head,tablero,width)
-	  val posDerecha = comprobarIgualesDerecha(lpos.head, lpos.head+1, tablero,width)
-	  val posIzquierda = comprobarIgualesIzquierda(lpos.head, lpos.head-1, tablero,width)
-	  val lposaux = lpos:+posArriba:+posAbajo:+posDerecha:+posIzquierda
-	  val lposaux2 = lposaux.filter(_ > -1)
-	  val lposaux3 = lposaux2.distinct
-	  if (lposaux3==lpos) lposaux3
-	  else algoritmoEstrella(tablero, width, lpos, pos+1)
-	  }
+	       if(lpos.isEmpty){
+	                val posArriba = comprobarIgualesArriba(pos,tablero,width)
+	                val posAbajo = comprobarIgualesAbajo(pos,tablero,width)
+              	   val posDerecha = comprobarIgualesDerecha(pos,tablero,width)
+              	   val posIzquierda = comprobarIgualesIzquierda(pos,tablero,width)
+              	   val lposaux = lpos:+pos
+              	   val lposaux2 = lposaux:+posArriba:+posAbajo:+posDerecha:+posIzquierda
+              	   val lposaux3 = lposaux2.filter(_ > -1)
+              	   val lposaux4 = lposaux3.distinct
+              	   //println(lposaux4)
+              	   if (lposaux4==lpos) lposaux4
+              	   else algoritmoEstrella(tablero, width, lposaux4, pos+1)
+	      }
+	       else{
+	          val posArriba = comprobarIgualesArriba(lpos.head,tablero,width)
+	          val posAbajo = comprobarIgualesAbajo(lpos.head,tablero,width)
+            val posDerecha = comprobarIgualesDerecha(lpos.head,tablero,width)
+        	    val posIzquierda = comprobarIgualesIzquierda(lpos.head,tablero,width)
+        	    val lposaux = lpos:+pos
+        	    val lposaux2 = lposaux:+posArriba:+posAbajo:+posDerecha:+posIzquierda
+        	    val lposaux3 = lposaux2.filter(_ > -1)
+        	    val lposaux4 = lposaux3.distinct
+        	    //println(lposaux4)
+        	    if (lposaux4==lpos) lposaux4
+        	    else algoritmoEstrella(tablero, width, lposaux4.tail, pos)
+	       }
 	}
-	
-	
 	// Función que devuelve la posición si esta es igual, o -1 si no es igual. El -1 lo eliminará antes de quitarRepetidos.
 	def comprobarIgualesArriba(pos:Int,tablero:List[Int],width:Int): Int = {
 	  if((pos-width>0) && (tablero(pos)==tablero(pos-width))) pos-width
@@ -149,12 +162,22 @@ object Main  extends App
 	  else -1
 	}
 	def comprobarIgualesDerecha(pos:Int,tablero:List[Int],width:Int): Int = {
-	  if((pos+1< tablero.length) && (tablero(pos)==tablero(pos2))) pos2
+	  if((pos+1<tablero.length) && (tablero(pos)==tablero(pos+1))) pos+1
 	  else -1
 	}
-	def comprobarIgualesIzquierda(pos:Int,pos2:Int,tablero:List[Int],width:Int): Int = {
-	  if((pos-1>0) && (tablero(pos)==tablero(pos2))) pos2
+	def comprobarIgualesIzquierda(pos:Int,tablero:List[Int],width:Int): Int = {
+	  if((pos-1>0) && (tablero(pos)==tablero(pos-1))) pos-1
 	  else -1
+	}
+	
+	def eliminarIguales(tablero:List[Int],lpos:List[Int]): List[Int] = {
+	  if(lpos.length !=0 ){
+	    val tableroaux= poner(lpos.head,0,tablero)
+	    eliminarIguales(tableroaux, lpos.tail)
+	  } 
+	  else {
+	    tablero
+	  }
 	}
 	
 	def pedirFila(numFilas: Int): Int =
