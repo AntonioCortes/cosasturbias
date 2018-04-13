@@ -112,26 +112,6 @@ object Main  extends App
 		print(s"Vidas: $numVidas Dificultad: $dificultad\n")
 			
 		dibujarTablero(tablero, numColumnas, 0, 0, true)
-		
-		val fila = pedirFila(numFilas)
-		val columna = pedirColumna(numColumnas)
-		val pos = (fila*numColumnas) + columna
-		
-		val tablero1= comprobarElementoArriba(pos, tablero, numColumnas)
-		val tablero2= comprobarElementoDerecha(pos, tablero1, numColumnas)
-		val tablero3= comprobarElementoIzquierda(pos, tablero2, numColumnas)
-		val tablero4= comprobarElementoAbajo(pos, tablero3, numColumnas)
-		dibujarTablero(tablero4, numColumnas, 0)
-		quitarCeros(tablero4, 0)
-		juego(tablero4, numFilas, numColumnas, dificultad, numVidas)		
-	}
-	def quitarCeros(tablero:List[Int], pos:Int): List[Int] = {
-  val r = scala.util.Random
-  	if (tablero.length == pos) tablero
-  	else if(tablero(pos)==0){
-  		quitarCeros(poner(pos,(1+ r.nextInt((4-1)+1)),tablero), pos+1)
-  		}
-  else quitarCeros(tablero, pos+1)
   }
 	
 	
