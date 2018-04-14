@@ -111,11 +111,11 @@ object Main  extends App
 	  println()
 		print(s"Vidas: $numVidas Dificultad: $dificultad\n")
 		dibujarTablero(tablero, numColumnas, 0, 0, true)
-		val columa = pedirColumna(numColumnas)
+		val columna = pedirColumna(numColumnas)
 		val fila = pedirFila(numFilas)
-		val pos= fila*numColumnas+columa
+		val pos= fila*numColumnas+columna
 		val listpos= List[Int]()
-		val listaMuerte = algoritmoEstrella(tablero, numColumnas, listpos, pos)
+		val listaMuerte =  buscarIguales(tablero, pos, columna, numColumnas, listpos)
 		println(listaMuerte)
 		val tableroFin=eliminarIguales(tablero, listaMuerte)
 		dibujarTablero(tableroFin, numColumnas, 0, 0, true)
@@ -123,51 +123,126 @@ object Main  extends App
   }
 	
 	
+	def buscarIguales(tablero:List[Int],pos:Int,columna:Int,width:Int,lpos:List[Int]):List[Int] = {
+	  //busca en todas direcciones
+	  val arriba=buscarIgualesArriba(tablero,pos-width,columna,width,lpos)
+	  val abajo=buscarIgualesAbajo(tablero,pos+width,columna,width,lpos)
+	  val derecha=buscarIgualesDerecha(tablero,pos+1,columna+1,width,lpos)
+	  val izquierda=buscarIgualesIzquierda(tablero,pos-1,columna-1,width,lpos)
+	  ////Une todas las listas con las posiciones que recibe
+	  val lposaux=unirListas(lpos,unirListas(arriba, (unirListas(abajo, (unirListas(derecha, izquierda)))))) 
+	  val lposaux1= pos::lposaux //Añade el primer elemento
+	  return lposaux1
+	}
 	
-	def algoritmoEstrella(tablero:List[Int],width:Int,lpos:List[Int],pos:Int):List[Int] = {
-	       if(lpos.isEmpty){
-	                val posArriba = comprobarIgualesArriba(pos,tablero,width)
-	                val posAbajo = comprobarIgualesAbajo(pos,tablero,width)
-              	   val posDerecha = comprobarIgualesDerecha(pos,tablero,width)
-              	   val posIzquierda = comprobarIgualesIzquierda(pos,tablero,width)
-              	   val lposaux = lpos:+pos
-              	   val lposaux2 = lposaux:+posArriba:+posAbajo:+posDerecha:+posIzquierda
-              	   val lposaux3 = lposaux2.filter(_ > -1)
-              	   val lposaux4 = lposaux3.distinct
-              	   //println(lposaux4)
-              	   if (lposaux4==lpos) lposaux4
-              	   else algoritmoEstrella(tablero, width, lposaux4, pos+1)
+	
+	def buscarIgualesArriba(tablero:List[Int],pos:Int,columna:Int,width:Int,lpos:List[Int]):List[Int] = {
+	  if((pos>0) && (tablero(pos)==tablero(pos+width))){
+	    val arriba=buscarIgualesArriba(tablero,pos-width,columna,width,lpos)
+	    val derecha=buscarIgualesDerecha(tablero,pos+1,columna+1,width,lpos)
+	    val izquierda=buscarIgualesIzquierda(tablero,pos-1,columna-1,width,lpos)
+	    val lposaux=unirListas( lpos,unirListas(arriba,(unirListas(derecha, izquierda))))
+	    val lposaux1= pos::lposaux
+	    return lposaux1
+	  }
+	  else{
+	    return List[Int]()
+	  }
+	}
+	
+	def buscarIgualesAbajo(tablero:List[Int],pos:Int,columna:Int,width:Int,lpos:List[Int]):List[Int] = {
+	  if((pos<tablero.length) && (tablero(pos)==tablero(pos-width))){
+	    val abajo=buscarIgualesAbajo(tablero,pos+width,columna,width,lpos)
+	    val derecha=buscarIgualesDerecha(tablero,pos+1,columna+1,width,lpos)
+	    val izquierda=buscarIgualesIzquierda(tablero,pos-1,columna-1,width,lpos)
+	    val lposaux=unirListas( lpos,(unirListas(abajo, (unirListas(derecha, izquierda)))))
+	    val lposaux1= pos::lposaux
+	    return lposaux1
+	  }
+	  else{
+	    return List[Int]()
+	  }
+	}
+	
+	def buscarIgualesDerecha(tablero:List[Int],pos:Int,columna:Int,width:Int,lpos:List[Int]):List[Int] = {
+	  if((columna<=width) && (tablero(pos)==tablero(pos-1))){
+	    val arriba=buscarIgualesArriba(tablero,pos-width,columna,width,lpos)
+	    val abajo=buscarIgualesAbajo(tablero,pos+width,columna,width,lpos)
+	    val derecha=buscarIgualesDerecha(tablero,pos+1,columna+1,width,lpos)
+	    val lposaux=unirListas( lpos,unirListas(arriba, (unirListas(abajo,derecha))))
+	    val lposaux1= pos::lposaux
+	    return lposaux1
+	  }
+	  else{
+	    return List[Int]()
+	  }
+	}
+	
+	def buscarIgualesIzquierda(tablero:List[Int],pos:Int,columna:Int,width:Int,lpos:List[Int]):List[Int] = {
+	  if((columna>0) && (tablero(pos)==tablero(pos+1))){
+	    val arriba=buscarIgualesArriba(tablero,pos-width,columna,width,lpos)
+	    val abajo=buscarIgualesAbajo(tablero,pos+width,columna,width,lpos)
+	    val izquierda=buscarIgualesIzquierda(tablero,pos-1,columna-1,width,lpos)
+	    val lposaux=unirListas( lpos,unirListas(arriba, (unirListas(abajo,izquierda))))
+	    val lposaux1= pos::lposaux
+	    return lposaux1
+	  }
+	  else{
+	    return List[Int]()
+	  }
+	}
+	
+	
+	
+	
+	/*def algoritmoEstrella(tablero:List[Int],width:Int,lpos:List[Int],pos:Int,posLista:Int,columna:Int):List[Int] = {
+	       if(posLista==0){ //Caso inicial
+	                val lposaux1=lpos:+pos
+	                val lposaux=  unirListas(lpos,verPosiciones(pos, tablero, width,columna))
+	                if(lposaux.length==1) lposaux //Fallo no hay iguales, no se eliminará.
+	                else algoritmoEstrella(tablero, width, lposaux,pos,posLista+1,columna)
 	      }
-	       else{
-	          val posArriba = comprobarIgualesArriba(lpos.head,tablero,width)
-	          val posAbajo = comprobarIgualesAbajo(lpos.head,tablero,width)
-            val posDerecha = comprobarIgualesDerecha(lpos.head,tablero,width)
-        	    val posIzquierda = comprobarIgualesIzquierda(lpos.head,tablero,width)
-        	    val lposaux = lpos:+pos
-        	    val lposaux2 = lposaux:+posArriba:+posAbajo:+posDerecha:+posIzquierda
-        	    val lposaux3 = lposaux2.filter(_ > -1)
-        	    val lposaux4 = lposaux3.distinct
-        	    //println(lposaux4)
-        	    if (lposaux4==lpos) lposaux4
-        	    else algoritmoEstrella(tablero, width, lposaux4.tail, pos)
+	      else if(posLista>=lpos.length){
+	         return lpos
 	       }
+	      else{
+	         val lposaux=  unirListas(lpos,verPosiciones(lpos(pos), tablero, width,columna))
+	         algoritmoEstrella(tablero, width, lposaux,pos,posLista+1,columna)
+	       }
+	}*/
+	
+	def unirListas(l1:List[Int],l2:List[Int]):List[Int]={
+	  if(l2.isEmpty) l1
+	  else unirListas(l1:+l2.head,l2.tail)
 	}
+	
+	/*def verPosiciones(pos:Int,tablero:List[Int],width:Int,columna:Int):List[Int]= {
+	  val posArriba = comprobarIgualesArriba(pos,tablero,width)
+	  val posAbajo = comprobarIgualesAbajo(pos,tablero,width)
+    val posDerecha = comprobarIgualesDerecha(pos,tablero,width,columna)
+    val posIzquierda = comprobarIgualesIzquierda(pos,tablero,width,columna)
+    val lposaux = List(pos)
+    val lposaux2 = lposaux:+posArriba:+posAbajo:+posDerecha:+posIzquierda
+    val lposaux3 = lposaux2.filter(_ > -1)
+    val lposaux4 = lposaux3.distinct
+    lposaux4
+	}*/
 	// Función que devuelve la posición si esta es igual, o -1 si no es igual. El -1 lo eliminará antes de quitarRepetidos.
-	def comprobarIgualesArriba(pos:Int,tablero:List[Int],width:Int): Int = {
-	  if((pos-width>0) && (tablero(pos)==tablero(pos-width))) pos-width
-	  else -1
+	def comprobarIgualesArriba(pos:Int,tablero:List[Int],width:Int): Boolean = {
+	  if((pos-width>0) && (tablero(pos)==tablero(pos-width))) true
+	  else false
 	}
-	def comprobarIgualesAbajo(pos:Int,tablero:List[Int],width:Int): Int = {
-	  if((pos+width<tablero.length) && (tablero(pos)==tablero(pos+width))) pos+width
-	  else -1
+	def comprobarIgualesAbajo(pos:Int,tablero:List[Int],width:Int): Boolean = {
+	  if((pos+width<tablero.length) && (tablero(pos)==tablero(pos+width))) true
+	  else false
 	}
-	def comprobarIgualesDerecha(pos:Int,tablero:List[Int],width:Int): Int = {
-	  if((pos+1<tablero.length) && (tablero(pos)==tablero(pos+1))) pos+1
-	  else -1
+	def comprobarIgualesDerecha(pos:Int,tablero:List[Int],width:Int,columna:Int): Boolean = {
+	  if((columna+1<width) && (tablero(pos)==tablero(pos+1))) true
+	  else false
 	}
-	def comprobarIgualesIzquierda(pos:Int,tablero:List[Int],width:Int): Int = {
-	  if((pos-1>0) && (tablero(pos)==tablero(pos-1))) pos-1
-	  else -1
+	def comprobarIgualesIzquierda(pos:Int,tablero:List[Int],width:Int,columna:Int): Boolean = {
+	  if((columna-1>0) && (tablero(pos)==tablero(pos-1))) true
+	  else false
 	}
 	
 	def eliminarIguales(tablero:List[Int],lpos:List[Int]): List[Int] = {
