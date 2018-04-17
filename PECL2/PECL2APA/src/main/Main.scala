@@ -161,6 +161,64 @@ object Main  extends App
 	  }
 	}
 	
+	def actualizarVidas(tableroOriginal: List[Int], tableroFinal: List[Int], numVidas: Int): Int = 
+	{
+	  if(tableroOriginal == tableroFinal) 
+	  {
+	    println("\n Posicion equivocada, vuelva a elegir, posicion")
+	    numVidas - 1 
+	  }
+	  else numVidas
+	}
+	
+	def terminarJuego(numVidas: Int, dificultad: Int, puntos: List[Int]): Boolean =
+	{
+	  val ptsAzul = getElemento(puntos, 0, 0)
+	  val ptsRojo = getElemento(puntos, 1, 0)
+	  val ptsNaranja = getElemento(puntos, 2, 0)
+	  val ptsVerde = getElemento(puntos, 3, 0)
+	  val ptsPlata = getElemento(puntos, 4, 0)
+	  val ptsMorado = getElemento(puntos, 5, 0)
+	  
+	  if(numVidas == 0)
+	  {
+	    println("\n\n*************")
+	    println("* GAME OVER *")
+	    println("*************")
+	    
+	    true
+	  }
+	  else if((dificultad == 1) && (ptsAzul >= 20) && (ptsRojo >= 20) && (ptsNaranja >= 20) && (ptsVerde >= 20))
+	  {
+	    println("\n\n**************")
+	    println("* HAS GANADO *")
+	    println("**************")
+	    
+	    true
+	  }  
+	  else if((dificultad == 2) && (ptsAzul >= 15) && (ptsRojo >= 15) && (ptsNaranja >= 15) && (ptsVerde >= 15) && (ptsPlata >= 15))
+	  {
+	    println("\n\n**************")
+	    println("* HAS GANADO *")
+	    println("**************")
+	    
+	    true
+	  }    
+	  else if((dificultad == 3) && (ptsAzul >= 10) && (ptsRojo >= 10) && (ptsNaranja >= 10) && (ptsVerde >= 10) && (ptsPlata >= 10) && (ptsMorado >= 10))
+	  {
+	    println("\n\n**************")
+	    println("* HAS GANADO *")
+	    println("**************")
+	    
+	    true
+	  }
+	  else
+	  {
+	    false
+	  }
+	  
+	}
+	
 	def comprobarListaPos(tablero: List[Int], listaPosiciones: List[Int]): List[Int] = 
 	{
 	  if(listaPosiciones.length == 1) List[Int]()
@@ -200,7 +258,7 @@ object Main  extends App
 		mostrarPuntos(puntos, dificultad)		
 		dibujarTablero(tablero, numColumnas, 0, 0, true)
 		
-		print(s"La máquina recomienda como mejor posición: fila: ${averiguarFila(mPunt, numColumnas)} columna: ${averiguarColumna(mPunt, numColumnas)}\n")
+		print(s"\nLa máquina recomienda como mejor posición: fila: ${averiguarFila(mPunt, numColumnas)} columna: ${averiguarColumna(mPunt, numColumnas)}\n")
 		
 		val fila = pedirFila(numFilas)
 		val columna = pedirColumna(numColumnas)		
@@ -208,9 +266,10 @@ object Main  extends App
 		val color = getElemento(tablero, pos, 0)
 		val tableroFin = ejecutar(tablero, pos, numColumnas, numColores)
 		val listaPos = buscarIguales(tablero, List(pos),List[Int]() ,List[Int](),numColumnas)
-		val puntos2 = actualizarPuntos(comprobarListaPos(tablero, listaPos), puntos, color)
+		val puntosActualizados = actualizarPuntos(comprobarListaPos(tablero, listaPos), puntos, color)
+		val vidasActualizadas = actualizarVidas(tablero, tableroFin, numVidas)
 
-		juego(tableroFin, numFilas, numColumnas, dificultad, numVidas, numColores, puntos2)
+		if(!terminarJuego(vidasActualizadas, dificultad, puntosActualizados)) juego(tableroFin, numFilas, numColumnas, dificultad, vidasActualizadas, numColores, puntosActualizados)
   }
 	
 	//Esta funcion calculará la mejor jugada cogiendo todas las posibles combinaciones del tablero y sacando la mejor.
