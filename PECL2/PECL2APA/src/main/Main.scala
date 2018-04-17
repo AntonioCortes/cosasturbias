@@ -176,7 +176,7 @@ object Main  extends App
     {
       val listpos = List[Int]()
       val listaMuerte = buscarIguales(tablero, List(posicion),List[Int]() ,List[Int](),numColumnas)
-      val tablero2 = eliminarIguales(tablero, listaMuerte)
+      val tablero2 = eliminarIguales(tablero, listaMuerte,true)
       val tablero3 = ponerBomba(tablero2, posicion, listaMuerte, numColumnas, numColores)
       val listCeros = listaCeros(tablero3, 0)
 
@@ -205,36 +205,35 @@ object Main  extends App
 		juego(tableroFin, numFilas, numColumnas, dificultad, numVidas, numColores, puntos2)
   }
 	
-	
+	//Esta funcion calculará la mejor jugada cogiendo todas las posibles combinaciones del tablero y sacando la mejor.
 	def mejorJugada(tablero:List[Int],pos:Int,columna:Int,width:Int,mPuntacion:Int,mPos:Int):Int={
-	  if (pos+3>=tablero.length) mPos
+	  if (pos+3>=tablero.length) mPos//Se sale de rango
 	  else{
-	    if(tablero(pos)==0) mejorJugada(tablero, pos+1, columna, width, mPuntacion, pos)
+	    if(getElemento(tablero, pos, 0)==0) mejorJugada(tablero, pos+1, columna, width, mPuntacion, pos) //Si la posicion es 0 no me sirve
 	    else{
-	      val puntAux=buscarIguales(tablero, List(pos),List[Int](),List[Int](),width)
-	      if(puntAux.length<mPuntacion) mejorJugada(tablero, pos+1, columna, width, mPuntacion, mPos)
-	      else mejorJugada(tablero, pos+1, columna, width, puntAux.length, pos)
+	      val puntAux=buscarIguales(tablero, List(pos),List[Int](),List[Int](),width)//Puntuación sacada de esa posición
+	      if(puntAux.length<mPuntacion) mejorJugada(tablero, pos+1, columna, width, mPuntacion, mPos) //Si la puntuación es menor, no lo tengo en cuenta y sigo avanzando
+	      else mejorJugada(tablero, pos+1, columna, width, puntAux.length, pos) //Si no, es que es mayor o igual, entonces guardo esa puntuación y sigo avanzando.
 	  }
 	}
 	}
 	
 	
-	
+	//Función que buscará las combinaciones posibles
 	def buscarIguales(tablero:List[Int],posExpandir:List[Int],posEliminar:List[Int],posVisitar:List[Int],width:Int): List[Int]={
 	  if(posExpandir.isEmpty) posEliminar
 	  else{
-      	  val listaExpandida= algoritmoEstrella(tablero,posExpandir.head,width)
-      	  //Aquí elimino iguales ordeno y tpda esa basura.
-      	  //val listaExpandida1= unirListas(posExpandir, listaExpandida)
-      	  val listaExpandida2= listaExpandida.distinct
-      	  val posVisitadosAux= añadirElementos(posVisitar,List(listaExpandida2.head))
-      	  val listaExpandida3= añadirElementos(posEliminar, listaExpandida2)
-      	  val listaExpandida4= limpiarLista1000(listaExpandida3)
-      	  if (listaExpandida4==posEliminar){
+      	  val listaExpandida= algoritmoEstrella(tablero,posExpandir.head,width)//Ejecuta el algoritmo de expansión en estrlla.
+      	  val listaExpandida2= listaExpandida.distinct //Quito iguales
+      	  val posVisitadosAux= añadirElementos(posVisitar,List(listaExpandida2.head))//Añado el nodo a la lista de posciones visitadas
+      	  val listaExpandida3= añadirElementos(posEliminar, listaExpandida2) //Añado la lista a las posiciones a eliminar puesto que son iguales.
+      	  val listaExpandida4= limpiarLista1000(listaExpandida3) //Elimino residuos, marcados como 1000
+      	  if (listaExpandida4==posEliminar){ //Si la lista de eliminados es igual que la que ya tenía es que he llegado a punto muerto
       	    val l1= ordenarLista(posEliminar)
       	    val l2= ordenarLista(posVisitadosAux)
-      	    if (l1==l2) posEliminar
-      	    else{ //Busco con el primer elemento no visitado
+      	    if (l1==l2) posEliminar //Si las dos listas son iguales, es que he llegado a punto muerto y visitado todos los nodos, entonces
+      	    //tengo ya todas las combinaciones
+      	    else{ //Busco con el primer elemento no visitado que me falta
       	      val elemento= elementoNoIgual(posVisitadosAux,posEliminar)
       	      buscarIguales(tablero,List(elemento),posEliminar,posVisitadosAux,width)
       	    }
@@ -244,14 +243,19 @@ object Main  extends App
 	}
 	
 	def algoritmoEstrella(tablero:List[Int],pos:Int,width:Int):List[Int]={
+	  //algoritmo que me saca todas las posiciones del algoritmo estrella tal que así:
+	  /*              |
+	   *          -- Pos --
+	   *              | 
+	   */
 	  val arriba= comprobarIgualesArriba(pos, tablero, width)
 	  val abajo = comprobarIgualesAbajo(pos, tablero, width)
 	  val derecha = comprobarIgualesDerecha(pos, tablero, width)
 	  val izquierda = comprobarIgualesIzquierda(pos, tablero, width)
-	  val lposaux = List(pos)
-    val lposaux2 = lposaux:+arriba:+abajo:+derecha:+izquierda
-    val lposaux3 = limpiarLista(lposaux2)
-    val lposaux4 = lposaux3.distinct
+	  val lposaux = List(pos)//Añado la posicion
+    val lposaux2 = lposaux:+arriba:+abajo:+derecha:+izquierda //Añado las posiciones
+    val lposaux3 = limpiarLista(lposaux2) //Quito los menos uno
+    val lposaux4 = lposaux3.distinct //Quito iguales y devuelvo
 	  return lposaux4
 	}
 	
@@ -319,11 +323,15 @@ object Main  extends App
       lista
      }
   }
-	def eliminarIguales(tablero:List[Int],lpos:List[Int]): List[Int] = {
-	  if(lpos.length>1 ){
+	def eliminarIguales(tablero:List[Int],lpos:List[Int], primeraI:Boolean): List[Int] = {
+	  if(lpos.length>1){
 	    val tableroaux= poner(lpos.head,0,tablero)
-	    eliminarIguales(tableroaux, lpos.tail)
-	  } 
+	    eliminarIguales(tableroaux, lpos.tail,false)
+	  }
+	  else if(lpos.length==1 && primeraI==false){
+	    val tableroaux= poner(lpos.head,0,tablero)
+	    return tableroaux
+	  }
 	  else {
 	    tablero
 	  }
