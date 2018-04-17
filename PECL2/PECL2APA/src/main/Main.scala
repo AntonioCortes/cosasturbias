@@ -4,6 +4,24 @@ package main
 import scala.io.StdIn
 import util.Random
 
+/**
+ * AZUL 1
+ * ROJO 2
+ * NARANJA 3
+ * VERDE 4
+ * PLATA 5
+ * MORADO 6
+ * BOMBA VERTICAL 7
+ * BOMBA HORIZONTAL 8
+ * TNT 9
+ * BOMBAPUZLE AZUL 10
+ * BOMBAPUZLE ROJO 11 
+ * BOMBAPUZLE NARANJA 12 
+ * BOMBAPUZLE VERDE 13 
+ * BOMBAPUZLE PLATA 14
+ * BOMBAPUZLE MORADO 15 
+ */
+
 object Main  extends App
 {
   val dificultad = pedirDificultad()
@@ -12,7 +30,8 @@ object Main  extends App
   val numColores = asignarNumColores(dificultad)
   val numVidas = 5
   val tablero = crearLista(numFilas * numColumnas, numColores)
-  juego(tablero, numFilas, numColumnas, dificultad, numVidas, numColores)
+  val puntos = List(0,0,0,0,0,0)
+  juego(tablero, numFilas, numColumnas, dificultad, numVidas, numColores, puntos)
   
   def poner(pos:Int,color:Int,tablero:List[Int]): List[Int] = {
   			if (tablero.isEmpty) Nil
@@ -105,6 +124,23 @@ object Main  extends App
 		}
 	}
 
+	def mostrarPuntos(puntos: List[Int], dificultad: Int): Unit = dificultad match
+	{
+	  case 1 => print(s"PUNTOS: Azul: ${getElemento(puntos, 0, 0)} Rojo: ${getElemento(puntos, 1, 0)} Naranja: ${getElemento(puntos, 2, 0)} Verde: ${getElemento(puntos, 3, 0)}\n\n")
+	  case 2 => print(s"PUNTOS: Azul: ${getElemento(puntos, 0, 0)} Rojo: ${getElemento(puntos, 1, 0)} Naranja: ${getElemento(puntos, 2, 0)} Verde: ${getElemento(puntos, 3, 0)} Plata: ${getElemento(puntos, 4, 0)}\n\n")
+	  case 3 => print(s"PUNTOS: Azul: ${getElemento(puntos, 0, 0)} Rojo: ${getElemento(puntos, 1, 0)} Naranja: ${getElemento(puntos, 2, 0)} Verde: ${getElemento(puntos, 3, 0)} Plata: ${getElemento(puntos, 4, 0)} Morado: ${getElemento(puntos, 5, 0)}\n\n")
+	}
+	
+	def actualizarPuntos(listaPosiciones: List[Int], puntos: List[Int], color: Int): List[Int] = 
+	{
+	  val puntuacion = listaPosiciones.length
+	  if(puntuacion < 1) puntos
+	  else
+	  {
+	    poner((color - 1),(getElemento(puntos, (color - 1), 0) + puntuacion) , puntos)   
+	  }
+	}
+	
   def ejecutar(tablero: List[Int], posicion: Int, numColumnas: Int, numColores: Int): List[Int] =
   {
     val columna = averiguarColumna(posicion, numColumnas)
@@ -127,13 +163,14 @@ object Main  extends App
       animacion(listCeros, tablero3, numColumnas, numColores)
     }
   }
-	
-	def juego(tablero: List[Int],numFilas: Int, numColumnas: Int, dificultad: Int, numVidas: Int, numColores: Int): Unit =
+  
+	def juego(tablero: List[Int],numFilas: Int, numColumnas: Int, dificultad: Int, numVidas: Int, numColores: Int, puntos: List[Int]): Unit =
 	{
 	  val mPunt= mejorJugada(tablero, 0, 0, numColumnas,0, 0)
+	  
 	  println()
-		print(s"Vidas: $numVidas Dificultad: $dificultad\n")
-		
+		print(s"Vidas: $numVidas Dificultad: $dificultad ")	
+		mostrarPuntos(puntos, dificultad)		
 		dibujarTablero(tablero, numColumnas, 0, 0, true)
 		
 		print(s"La máquina recomienda como mejor posición: $mPunt\n")
@@ -141,9 +178,11 @@ object Main  extends App
 		val fila = pedirFila(numFilas)
 		val columna = pedirColumna(numColumnas)		
 		val pos= fila*numColumnas+columna
+		val color = getElemento(tablero, pos, 0)
 		val tableroFin = ejecutar(tablero, pos, numColumnas, numColores)
+		val puntos2 = actualizarPuntos(buscarIguales(tablero, List(pos),List[Int]() ,List[Int](),numColumnas), puntos, color)
 
-		juego(tableroFin, numFilas, numColumnas, dificultad, numVidas, numColores)
+		juego(tableroFin, numFilas, numColumnas, dificultad, numVidas, numColores, puntos2)
   }
 	
 	
