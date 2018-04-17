@@ -95,25 +95,25 @@ object Main  extends App
 	    }
 	    else if((columna < numColumnas) && (columna < 10))
 		  {
-			  print(s"$columna  ")
+			  print(s"$columna  ")//La columna la imprimes aqui???
 			  
 			  
 			  dibujarTablero(tablero, numColumnas, fila, columna + 1, true)
 		  }
 		  else if(columna < numColumnas)
 		  {
-			  print(s"$columna ")
+			  print(s"$columna ") //La columna la imprimes aqui???
 			  dibujarTablero(tablero, numColumnas, fila, columna + 1, true)
 		  }
 	  }
 	  else if(tablero.nonEmpty)
 		{
-			print(tablero.head + "  ")
+			print(devolverElemento(tablero.head) + "  ") //Aquí que imprimes??
 			
 			if(tablero.tail.length % numColumnas == 0 && tablero.tail.nonEmpty) 
 			{
-			  if(fila + 1 < 10) print(s"\n${fila + 1}   ")
-			  else print(s"\n${fila + 1}  ")
+			  if(fila + 1 < 10) print(s"\n${fila + 1}   ")//Aquí imprimes fila??
+			  else print(s"\n${fila + 1}  ")//Aquí imprimes fila??
 			}
 			
 			dibujarTablero(tablero.tail, numColumnas, auxFila(tablero.tail, numColumnas, fila), columna,false)
@@ -122,6 +122,26 @@ object Main  extends App
 		{
 		  println()
 		}
+	}
+	
+	
+	def devolverElemento(n:Int): String =  n match {
+	  case 1 => "A"
+	  case 2 => "R"
+	  case 3 => "N"
+	  case 4 => "V"
+	  case 5 => "P"
+	  case 6 => "M"
+	  case 7 => "Bv"
+	  case 8 => "Bh"
+	  case 9 => "TNT"
+	  case 10 => "BA"
+	  case 11 => "BR"
+	  case 12 => "BN"
+	  case 13 => "BV"
+	  case 14 => "BP"
+	  case 15 => "BM"
+	  case _ => " "
 	}
 
 	def mostrarPuntos(puntos: List[Int], dificultad: Int): Unit = dificultad match
