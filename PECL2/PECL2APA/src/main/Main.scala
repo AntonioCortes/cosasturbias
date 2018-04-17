@@ -12,7 +12,7 @@ object Main  extends App
   val numColores = asignarNumColores(dificultad)
   val numVidas = 5
   val tablero = crearLista(numFilas * numColumnas, numColores)
-  juego(tablero, numFilas, numColumnas, dificultad, numVidas)
+  juego(tablero, numFilas, numColumnas, dificultad, numVidas, numColores)
   
   def poner(pos:Int,color:Int,tablero:List[Int]): List[Int] = {
   			if (tablero.isEmpty) Nil
@@ -105,22 +105,45 @@ object Main  extends App
 		}
 	}
 
-	def juego(tablero: List[Int],numFilas: Int, numColumnas: Int, dificultad: Int, numVidas: Int): Unit =
+  def ejecutar(tablero: List[Int], posicion: Int, numColumnas: Int, numColores: Int): List[Int] =
+  {
+    val columna = averiguarColumna(posicion, numColumnas)
+
+    if (esBomba(tablero(posicion))) 
+    {
+      val tablero2 = explotarBomba(tablero, posicion, numColumnas)
+      val listCeros = listaCeros(tablero2, 0)
+
+      animacion(listCeros, tablero2, numColumnas, numColores)
+    } 
+    else
+    {
+      val listpos = List[Int]()
+      val listaMuerte = buscarIguales(tablero, List(posicion),List[Int]() ,List[Int](),numColumnas)
+      val tablero2 = eliminarIguales(tablero, listaMuerte)
+      val tablero3 = ponerBomba(tablero2, posicion, listaMuerte, numColumnas, numColores)
+      val listCeros = listaCeros(tablero3, 0)
+
+      animacion(listCeros, tablero3, numColumnas, numColores)
+    }
+  }
+	
+	def juego(tablero: List[Int],numFilas: Int, numColumnas: Int, dificultad: Int, numVidas: Int, numColores: Int): Unit =
 	{
 	  val mPunt= mejorJugada(tablero, 0, 0, numColumnas,0, 0)
 	  println()
 		print(s"Vidas: $numVidas Dificultad: $dificultad\n")
+		
 		dibujarTablero(tablero, numColumnas, 0, 0, true)
+		
 		print(s"La máquina recomienda como mejor posición: $mPunt\n")
-		val columna = pedirColumna(numColumnas)
+		
 		val fila = pedirFila(numFilas)
+		val columna = pedirColumna(numColumnas)		
 		val pos= fila*numColumnas+columna
-		val listpos= List[Int]()
-		val listaMuerte =  buscarIguales(tablero, List(pos),List[Int]() ,List[Int](),numColumnas)
-		println(listaMuerte)
-		val tableroFin=eliminarIguales(tablero, listaMuerte)
-		dibujarTablero(tableroFin, numColumnas, 0, 0, true)
-		juego(tableroFin, numFilas, numColumnas, dificultad, numVidas)
+		val tableroFin = ejecutar(tablero, pos, numColumnas, numColores)
+
+		juego(tableroFin, numFilas, numColumnas, dificultad, numVidas, numColores)
   }
 	
 	
@@ -359,6 +382,293 @@ object Main  extends App
     else
     {
       lista
+    }
+  }
+
+  def bajarColumna(numColores: Int, fila: Int, columna: Int, numColumnas: Int, tablero: List[Int]): List[Int] =
+  {
+    val posicion = fila * numColumnas + columna
+    val arriba = (fila - 1) * numColumnas + columna
+
+    if ((fila == 0) && (tablero(posicion) == 0))
+    {
+      val color = Random.nextInt(numColores) + 1
+
+      poner(posicion, color, tablero)
+    } 
+    else if (arriba >= 0) 
+    {
+      if (tablero(arriba) == 0) {
+        bajarColumna(numColores, fila - 1, columna, numColumnas, tablero)
+      } 
+      else if (tablero(posicion) == 0) 
+      {
+        val nuevoTablero = poner(posicion, tablero(arriba), tablero)
+
+        if (fila != 0) bajarColumna(numColores, fila - 1, columna, numColumnas, poner(arriba, 0, nuevoTablero))
+        else bajarColumna(numColores, fila, columna, numColumnas, nuevoTablero)
+      } 
+      else 
+      {
+        tablero
+      }
+
+    } 
+    else 
+    {
+      tablero
+    }
+  }
+
+  def averiguarColumna(posicion: Int, numColumnas: Int): Int =
+  {
+    if ((posicion >= 0) && (posicion < numColumnas)) 
+    {
+       posicion
+    } 
+    else 
+    {
+      averiguarColumna(posicion - numColumnas, numColumnas)
+    }
+  }
+
+  def averiguarFila(posicion: Int, numColumnas: Int): Int =
+  {
+    (posicion / numColumnas).toInt
+  }
+
+  def mismaColumna(pos1: Int, pos2: Int, numColumnas: Int): Boolean =
+  {
+    if (averiguarColumna(pos1, numColumnas) == averiguarColumna(pos2, numColumnas)) true
+    else false
+  }
+
+  //devuelve una lista con los elementos pertenecientes a la columna especificada
+  def listaColumna(lista: List[Int], columna: Int, numColumnas: Int): List[Int] =
+  {
+    if (lista.nonEmpty) 
+    {
+      if (mismaColumna(lista.head, columna, numColumnas)) lista.head :: listaColumna(lista.tail, columna, numColumnas)
+      else listaColumna(lista.tail, columna, numColumnas)
+    } 
+    else lista
+  }
+
+  //devuelve una lista con las posiciones mas bajas pertenecientes a cada columna de la lista recibe por parametro
+  def separarEnColumnas(lista: List[Int], numColumnas: Int, columna: Int): List[Int] =
+  {
+    if (columna < numColumnas)
+    {
+      val listaCol = listaColumna(lista, columna, numColumnas)
+
+      if (listaCol.nonEmpty) listaCol.max :: separarEnColumnas(lista, numColumnas, columna + 1)
+      else separarEnColumnas(lista, numColumnas, columna + 1)
+    } 
+    else
+    {
+      Nil
+    }
+  }
+
+  def bajarCeros(lista: List[Int], tablero: List[Int], numColumnas: Int, numColores: Int): List[Int] =
+  {
+    val lista2 = separarEnColumnas(lista, numColumnas, 0)
+
+    if (lista2.nonEmpty)
+    {
+      val fila = averiguarFila(lista.head, numColumnas)
+      val columna = averiguarColumna(lista.head, numColumnas)
+      val tablero2 = bajarColumna(numColores, fila, columna, numColumnas, tablero)
+
+      bajarCeros(lista2.tail, tablero2, numColumnas, numColores)
+    } 
+    else 
+    {
+      tablero
+    }
+  }
+
+  def listaCeros(tablero: List[Int], posicion: Int): List[Int] =
+  {
+    if (tablero.nonEmpty) 
+    {
+      if (tablero.head == 0) posicion :: listaCeros(tablero.tail, posicion + 1)
+      else listaCeros(tablero.tail, posicion + 1)
+    } 
+    else 
+    {
+      tablero
+    }
+  }
+
+  def hayCeros(lista: List[Int]): Boolean =
+  {
+    if (lista.isEmpty) false
+    else if (lista.head == 0) true
+    else hayCeros(lista.tail)
+  }
+
+  def animacion(listaPosiciones: List[Int], tablero: List[Int], numColumnas: Int, numColores: Int): List[Int] =
+  {
+    dibujarTablero(tablero, numColumnas, 0, 0, true)
+    println()
+
+    if (hayCeros(tablero)) {
+      val tablero2 = bajarCeros(listaPosiciones, tablero, numColumnas, numColores)
+      val listCeros = separarEnColumnas(listaCeros(tablero2, 0), numColumnas, 0)
+
+      animacion(listCeros, tablero2, numColumnas, numColores)
+    } 
+    else 
+    {
+      tablero
+    }
+  }
+
+  def elegirBomba(listaPosiciones: List[Int], numColores: Int): Int =
+  {
+    if (listaPosiciones.length < 5) 0
+    else if (listaPosiciones.length == 5) Random.nextInt(2) + 7
+    else if (listaPosiciones.length == 6) 9
+    else Random.nextInt(numColores) + 10
+  }
+  
+  def bajarElemento(tablero: List[Int], posicion: Int, numColumnas: Int): List[Int] =
+  {
+    val abajo = posicion + numColumnas
+    
+    if ((abajo < tablero.length) && (tablero(posicion) != 0))
+    {
+      if (tablero(abajo) == 0) 
+      {
+        val tablero2 = poner(abajo, tablero(posicion), tablero)
+        val tablero3 = poner(posicion, 0, tablero2)
+
+        bajarElemento(tablero3, abajo, numColumnas)
+      } 
+      else
+      {
+        tablero
+      }
+    } 
+    else
+    {
+      tablero
+    }
+  }
+
+  def esBomba(valor: Int): Boolean = if (valor > 6) true else false
+
+  def ponerBomba(tablero: List[Int], posicion: Int, listaPosiciones: List[Int], numColumnas: Int, numColores: Int): List[Int] =
+  {
+    val bomba = elegirBomba(listaPosiciones, numColores)
+    val tablero2 = poner(posicion, bomba, tablero)
+
+    bajarElemento(tablero2, posicion, numColumnas)
+  }
+
+  def explosionHorizontal(tablero: List[Int], fila: Int, tamTablero: Int, numColumnas: Int): List[Int] =
+  {
+    println(s"hago explosion horizontal en la fila $fila")
+    val posicion = tamTablero - tablero.length
+    val filaActual = averiguarFila(posicion, numColumnas)
+
+    if (tablero.nonEmpty)
+    {
+      if (filaActual == fila) 0 :: explosionHorizontal(tablero.tail, fila, tamTablero, numColumnas)
+      else tablero.head :: explosionHorizontal(tablero.tail, fila, tamTablero, numColumnas)
+    } 
+    else 
+    {
+      tablero
+    }
+  }
+
+  def explosionVertical(tablero: List[Int], columna: Int, tamTablero: Int, numColumnas: Int): List[Int] =
+  {
+    val posicion = tamTablero - tablero.length
+    val columnaActual = averiguarColumna(posicion, numColumnas)
+    if (tablero.nonEmpty) 
+    {
+      if (columnaActual == columna) 0 :: explosionVertical(tablero.tail, columna, tamTablero, numColumnas)
+      else tablero.head :: explosionVertical(tablero.tail, columna, tamTablero, numColumnas)
+    } 
+    else 
+    {
+      tablero    
+    }
+  }
+
+  def explosionTNT(tablero: List[Int], posSeleccionada: Int, tamTablero: Int, numColumnas: Int): List[Int] =
+  {
+    val posicion = tamTablero - tablero.length
+    val filaPosSel = averiguarFila(posSeleccionada, numColumnas)
+    val colPosSel = averiguarColumna(posSeleccionada, numColumnas)
+    val arribaPosSel = (filaPosSel - 1) * numColumnas + colPosSel
+    val abajoPosSel = (filaPosSel + 1) * numColumnas + colPosSel
+    val izPosSel = filaPosSel * numColumnas + (colPosSel - 1)
+    val derPosSel = filaPosSel * numColumnas + (colPosSel + 1)
+    val arrDerPosSel = (filaPosSel - 1) * numColumnas + (colPosSel + 1)
+    val arrIzPosSel = (filaPosSel - 1) * numColumnas + (colPosSel - 1)
+    val abDerPosSel = (filaPosSel + 1) * numColumnas + (colPosSel + 1)
+    val abIzPosSel = (filaPosSel + 1) * numColumnas + (colPosSel - 1)
+
+    if (tablero.nonEmpty) 
+    {
+      if ((posicion == posSeleccionada) || (posicion == arribaPosSel) || (posicion == abajoPosSel) || (posicion == izPosSel) || (posicion == derPosSel)) 
+      {
+        0 :: explosionTNT(tablero.tail, posSeleccionada, tamTablero, numColumnas)
+      } 
+      else if ((posicion == arrDerPosSel) || (posicion == arrIzPosSel) || (posicion == abDerPosSel) || (posicion == abIzPosSel)) 
+      {
+        0 :: explosionTNT(tablero.tail, posSeleccionada, tamTablero, numColumnas)
+      } 
+      else 
+      {
+        tablero.head :: explosionTNT(tablero.tail, posSeleccionada, tamTablero, numColumnas)
+      }
+    } 
+    else
+    {
+      tablero
+    }
+  }
+  
+  def explotarPuzle(tablero: List[Int], tipoPuzle: Int): List[Int] = tipoPuzle match
+  {
+    case 10 => explosionPuzle(tablero, 1)
+    case 11 => explosionPuzle(tablero, 2)
+    case 12 => explosionPuzle(tablero, 3)
+    case 13 => explosionPuzle(tablero, 4)
+    case 14 => explosionPuzle(tablero, 5)
+    case _ => explosionPuzle(tablero, 6)
+  }
+  
+  def explosionPuzle(tablero: List[Int], color: Int): List[Int] =
+  {
+    println(s"hago explosion puzle en el color $color")
+    if (tablero.nonEmpty) {
+      if ((tablero.head == color) || (tablero.head > 9)) 0 :: explosionPuzle(tablero.tail, color)
+      else tablero.head :: explosionPuzle(tablero.tail, color)
+    } 
+    else 
+    {
+      tablero
+    }
+  }
+
+  def explotarBomba(tablero: List[Int], posicion: Int, numColumnas: Int): List[Int] =
+  {
+    val tipoBomba = tablero(posicion)
+    val fila = averiguarFila(posicion, numColumnas)
+    val columna = averiguarColumna(posicion, numColumnas)
+      
+    tipoBomba match 
+    {
+      case 7 => explosionVertical(tablero, columna, tablero.length, numColumnas)
+      case 8 => explosionHorizontal(tablero, fila, tablero.length, numColumnas)
+      case 9 => explosionTNT(tablero, posicion, tablero.length, numColumnas)
+      case _ => explotarPuzle(tablero, tipoBomba)
     }
   }
 }
