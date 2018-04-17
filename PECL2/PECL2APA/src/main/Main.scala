@@ -95,25 +95,25 @@ object Main  extends App
 	    }
 	    else if((columna < numColumnas) && (columna < 10))
 		  {
-			  print(s"$columna  ")//La columna la imprimes aqui???
+			  print(s"$columna  ")
 			  
 			  
 			  dibujarTablero(tablero, numColumnas, fila, columna + 1, true)
 		  }
 		  else if(columna < numColumnas)
 		  {
-			  print(s"$columna ") //La columna la imprimes aqui???
+			  print(s"$columna ") 
 			  dibujarTablero(tablero, numColumnas, fila, columna + 1, true)
 		  }
 	  }
 	  else if(tablero.nonEmpty)
 		{
-			print(devolverElemento(tablero.head) + "  ") //Aquí que imprimes??
+			print(devolverElemento(tablero.head) + "  ") 
 			
 			if(tablero.tail.length % numColumnas == 0 && tablero.tail.nonEmpty) 
 			{
-			  if(fila + 1 < 10) print(s"\n${fila + 1}   ")//Aquí imprimes fila??
-			  else print(s"\n${fila + 1}  ")//Aquí imprimes fila??
+			  if(fila + 1 < 10) print(s"\n${fila + 1}   ")
+			  else print(s"\n${fila + 1}  ")
 			}
 			
 			dibujarTablero(tablero.tail, numColumnas, auxFila(tablero.tail, numColumnas, fila), columna,false)
@@ -163,8 +163,12 @@ object Main  extends App
 	
 	def comprobarListaPos(tablero: List[Int], listaPosiciones: List[Int]): List[Int] = 
 	{
-	  if(listaPosiciones.length == 1) List[Int]()
-	  else eliminarIguales(tablero, listaPosiciones,true)
+	  if(listaPosiciones.length == 1)
+	    {
+	    println("devuelvo lis()")
+	    List[Int]()
+	    }
+	  else listaPosiciones
 	}
 	
   def ejecutar(tablero: List[Int], posicion: Int, numColumnas: Int, numColores: Int): List[Int] =
@@ -184,7 +188,7 @@ object Main  extends App
       val listaMuerte = buscarIguales(tablero, List(posicion),List[Int]() ,List[Int](),numColumnas)
       val listaPosFin = comprobarListaPos(tablero, listaMuerte)
       val tablero2 = eliminarIguales(tablero, listaPosFin, true)
-      val tablero3 = ponerBomba(tablero2, posicion, listaPosFin, numColumnas, numColores)
+      val tablero3 = ponerBomba(tablero2, posicion, listaPosFin, numColumnas, numColores)      
       val listCeros = listaCeros(tablero3, 0)
 
       animacion(listCeros, tablero3, numColumnas, numColores)
@@ -602,8 +606,8 @@ object Main  extends App
 
   def elegirBomba(listaPosiciones: List[Int], numColores: Int, tablero: List[Int], posicion: Int): Int =
   {
-    if (listaPosiciones.length == 1) getElemento(tablero, posicion, 0)
-    if (listaPosiciones.length < 5) 0
+    if (listaPosiciones.length < 2) getElemento(tablero, posicion, 0)
+    else if ((listaPosiciones.length < 5) && (listaPosiciones.length > 1)) 0
     else if (listaPosiciones.length == 5) Random.nextInt(2) + 7
     else if (listaPosiciones.length == 6) 9
     else Random.nextInt(numColores) + 10
