@@ -207,7 +207,7 @@ object Main  extends App
  	def comprobarIgualesDerecha(pos:Int,tablero:List[Int],width:Int): Int = {
  	  val n1= pos.toFloat/width
 	  val n2= scala.math.round(n1)
- 	  if((n2+1!=width) && (tablero(pos)==tablero(pos+1))) pos+1
+ 	  if((n2+1!=width) && (pos+1<tablero.length) && (tablero(pos)==tablero(pos+1))) pos+1
  	  else -1
  	}
 	def comprobarIgualesIzquierda(pos:Int,tablero:List[Int],width:Int): Int = {
@@ -261,7 +261,7 @@ object Main  extends App
      }
   }
 	def eliminarIguales(tablero:List[Int],lpos:List[Int]): List[Int] = {
-	  if(lpos.length !=0 ){
+	  if(lpos.length>1 ){
 	    val tableroaux= poner(lpos.head,0,tablero)
 	    eliminarIguales(tableroaux, lpos.tail)
 	  } 
