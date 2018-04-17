@@ -161,6 +161,12 @@ object Main  extends App
 	  }
 	}
 	
+	def comprobarListaPos(tablero: List[Int], listaPosiciones: List[Int]): List[Int] = 
+	{
+	  if(listaPosiciones.length == 1) List[Int]()
+	  else eliminarIguales(tablero, listaPosiciones,true)
+	}
+	
   def ejecutar(tablero: List[Int], posicion: Int, numColumnas: Int, numColores: Int): List[Int] =
   {
     val columna = averiguarColumna(posicion, numColumnas)
@@ -176,8 +182,9 @@ object Main  extends App
     {
       val listpos = List[Int]()
       val listaMuerte = buscarIguales(tablero, List(posicion),List[Int]() ,List[Int](),numColumnas)
-      val tablero2 = eliminarIguales(tablero, listaMuerte,true)
-      val tablero3 = ponerBomba(tablero2, posicion, listaMuerte, numColumnas, numColores)
+      val listaPosFin = comprobarListaPos(tablero, listaMuerte)
+      val tablero2 = eliminarIguales(tablero, listaPosFin, true)
+      val tablero3 = ponerBomba(tablero2, posicion, listaPosFin, numColumnas, numColores)
       val listCeros = listaCeros(tablero3, 0)
 
       animacion(listCeros, tablero3, numColumnas, numColores)
@@ -193,14 +200,15 @@ object Main  extends App
 		mostrarPuntos(puntos, dificultad)		
 		dibujarTablero(tablero, numColumnas, 0, 0, true)
 		
-		print(s"La máquina recomienda como mejor posición: $mPunt\n")
+		print(s"La máquina recomienda como mejor posición: fila: ${averiguarFila(mPunt, numColumnas)} columna: ${averiguarColumna(mPunt, numColumnas)}\n")
 		
 		val fila = pedirFila(numFilas)
 		val columna = pedirColumna(numColumnas)		
 		val pos= fila*numColumnas+columna
 		val color = getElemento(tablero, pos, 0)
 		val tableroFin = ejecutar(tablero, pos, numColumnas, numColores)
-		val puntos2 = actualizarPuntos(buscarIguales(tablero, List(pos),List[Int]() ,List[Int](),numColumnas), puntos, color)
+		val listaPos = buscarIguales(tablero, List(pos),List[Int]() ,List[Int](),numColumnas)
+		val puntos2 = actualizarPuntos(comprobarListaPos(tablero, listaPos), puntos, color)
 
 		juego(tableroFin, numFilas, numColumnas, dificultad, numVidas, numColores, puntos2)
   }
@@ -592,8 +600,9 @@ object Main  extends App
     }
   }
 
-  def elegirBomba(listaPosiciones: List[Int], numColores: Int): Int =
+  def elegirBomba(listaPosiciones: List[Int], numColores: Int, tablero: List[Int], posicion: Int): Int =
   {
+    if (listaPosiciones.length == 1) getElemento(tablero, posicion, 0)
     if (listaPosiciones.length < 5) 0
     else if (listaPosiciones.length == 5) Random.nextInt(2) + 7
     else if (listaPosiciones.length == 6) 9
@@ -628,7 +637,7 @@ object Main  extends App
 
   def ponerBomba(tablero: List[Int], posicion: Int, listaPosiciones: List[Int], numColumnas: Int, numColores: Int): List[Int] =
   {
-    val bomba = elegirBomba(listaPosiciones, numColores)
+    val bomba = elegirBomba(listaPosiciones, numColores, tablero, posicion)
     val tablero2 = poner(posicion, bomba, tablero)
 
     bajarElemento(tablero2, posicion, numColumnas)
@@ -713,7 +722,6 @@ object Main  extends App
   
   def explosionPuzle(tablero: List[Int], color: Int): List[Int] =
   {
-    println(s"hago explosion puzle en el color $color")
     if (tablero.nonEmpty) {
       if ((tablero.head == color) || (tablero.head > 9)) 0 :: explosionPuzle(tablero.tail, color)
       else tablero.head :: explosionPuzle(tablero.tail, color)
