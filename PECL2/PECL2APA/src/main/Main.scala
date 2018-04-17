@@ -163,11 +163,7 @@ object Main  extends App
 	
 	def comprobarListaPos(tablero: List[Int], listaPosiciones: List[Int]): List[Int] = 
 	{
-	  if(listaPosiciones.length == 1)
-	    {
-	    println("devuelvo lis()")
-	    List[Int]()
-	    }
+	  if(listaPosiciones.length == 1) List[Int]()
 	  else listaPosiciones
 	}
 	
