@@ -108,7 +108,7 @@ object Main  extends App
 	  }
 	  else if(tablero.nonEmpty)
 		{
-			print(devolverElemento(tablero.head) + "  ") 
+			print(devolverElemento(tablero.head)) 
 			
 			if(tablero.tail.length % numColumnas == 0 && tablero.tail.nonEmpty) 
 			{
@@ -126,22 +126,22 @@ object Main  extends App
 	
 	
 	def devolverElemento(n:Int): String =  n match {
-	  case 1 => "A"
-	  case 2 => "R"
-	  case 3 => "N"
-	  case 4 => "V"
-	  case 5 => "P"
-	  case 6 => "M"
-	  case 7 => "Bv"
-	  case 8 => "Bh"
+	  case 1 => "A  "
+	  case 2 => "R  "
+	  case 3 => "N  "
+	  case 4 => "V  "
+	  case 5 => "P  "
+	  case 6 => "M  "
+	  case 7 => "Bv "
+	  case 8 => "BH "
 	  case 9 => "TNT"
-	  case 10 => "BA"
-	  case 11 => "BR"
-	  case 12 => "BN"
-	  case 13 => "BV"
-	  case 14 => "BP"
-	  case 15 => "BM"
-	  case _ => " "
+	  case 10 => "PA "
+	  case 11 => "PR "
+	  case 12 => "PN "
+	  case 13 => "PV "
+	  case 14 => "PP "
+	  case 15 => "PM "
+	  case _ => "   "
 	}
 
 	def mostrarPuntos(puntos: List[Int], dificultad: Int): Unit = dificultad match
