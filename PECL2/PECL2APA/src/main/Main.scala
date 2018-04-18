@@ -3,6 +3,7 @@ package main
 
 import scala.io.StdIn
 import util.Random
+import java.io._
 
 /**
  * AZUL 1
@@ -24,14 +25,189 @@ import util.Random
 
 object Main  extends App
 {
-  val dificultad = pedirDificultad()
+  val cargaPartida = preguntarCargarPartida()
+  val dificultad = asignarDificultad(cargaPartida)
   val numFilas = asignarNumFilas(dificultad)
   val numColumnas = asignarNumColumnas(dificultad)
   val numColores = asignarNumColores(dificultad)
-  val numVidas = 5
-  val tablero = crearLista(numFilas * numColumnas, numColores)
-  val puntos = List(0,0,0,0,0,0)
+  val numVidas = asignarVidas(cargaPartida)
+  val tablero = asignarTablero(cargaPartida, numFilas, numColumnas, numColores)
+  val puntos = asignarPuntuacion(cargaPartida)
   juego(tablero, numFilas, numColumnas, dificultad, numVidas, numColores, puntos)
+  
+  def preguntarCargarPartida(): Boolean = 
+  {
+    println("1 - Nueva Partida\n2 - Cargar Partida")
+    
+    val opcion = StdIn.readInt()
+    
+    if(opcion == 1) false
+    else if(opcion == 2) 
+    {
+      val ficheroDatos = new File("Datos Partida.txt")
+      val ficheroTablero = new File("tablero.dat")
+      val ficheroPuntos = new File("puntos.dat")
+      
+      if(ficheroDatos.exists && ficheroTablero.exists && ficheroPuntos.exists)
+      {
+        true
+      }
+      else
+      {
+        println("ERROR: Aún no hay ninguna partida guardada, vuelva a elegir opción")
+        
+        preguntarCargarPartida()
+      }
+      
+    }
+    else 
+    {
+      println("Opción incorrecta, vuelva a elegir opción")
+      
+      preguntarCargarPartida()
+    }
+  }
+  
+  def preguntarQueHacer(tablero: List[Int], dificultad: Int, puntos: List[Int], numVidas: Int): Boolean =
+  {
+    println("1 - Jugar\n2 - Guardar Partida\n3 - Salir")
+    
+    val opcion = StdIn.readInt()
+    
+    if((opcion != 1) && (opcion != 2) && (opcion != 3)) 
+    {
+      println("Opción incorrecta, vuelva a elegir opción")
+      
+      preguntarQueHacer(tablero, dificultad, puntos, numVidas)
+    }
+    else if(opcion == 1) false
+    else if(opcion == 2) 
+    {
+      
+      val ficheroDatos = new File("Datos Partida.txt")
+      val writerDatos = new BufferedWriter(new FileWriter(ficheroDatos))
+      try
+      {
+        writerDatos.write(s"$dificultad\n$numVidas")
+      }
+      finally
+      {
+        writerDatos.close()
+      }
+      
+      val ficheroTablero = new File("tablero.dat")
+      val salidaTablero = new ObjectOutputStream(new FileOutputStream(ficheroTablero))
+      
+      try
+      {
+        salidaTablero.writeObject(tablero)
+      }
+      finally
+      {
+        salidaTablero.close()
+      }
+      
+      val ficheroPuntos = new File("puntos.dat")
+      val salidaPuntos = new ObjectOutputStream(new FileOutputStream(ficheroPuntos))
+      
+      try
+      {
+        salidaPuntos.writeObject(puntos)
+      }
+      finally
+      {
+        salidaPuntos.close()
+      }
+      
+      println("Partida guardada")
+      preguntarQueHacer(tablero, dificultad, puntos, numVidas)
+    }
+    else true
+  }
+  
+  def asignarDificultad(cargarPartida: Boolean): Int = 
+  {
+    if(cargarPartida)
+    {
+      val fichero = new File("Datos Partida.txt")
+      val entrada = new BufferedReader(new FileReader(fichero))
+      
+      try
+      {
+        entrada.readLine().toInt
+      }
+      finally
+      {
+        entrada.close()
+      }
+    }
+    else pedirDificultad()
+  }
+  
+  def asignarVidas(cargarPartida: Boolean): Int =
+  {
+    if(cargarPartida)
+    {
+      val fichero = new File("Datos Partida.txt")
+      val entrada = new BufferedReader(new FileReader(fichero))
+      
+      try
+      {
+        entrada.readLine()
+        entrada.readLine().toInt
+      }
+      finally
+      {
+        entrada.close()
+      }
+      
+    }
+    else 5
+  }
+  
+  def asignarTablero(cargarPartida: Boolean, numFilas: Int, numColumnas: Int, numColores: Int): List[Int] = 
+  {
+    if(cargarPartida)
+    {
+      val fichero = new File("tablero.dat")
+      val entrada = new ObjectInputStream(new FileInputStream(fichero))
+      
+      try
+      {
+        entrada.readObject().asInstanceOf[List[Int]]
+      }
+      finally
+      {
+        entrada.close()
+      }
+    }
+    else
+    {
+      crearLista(numFilas * numColumnas, numColores)
+    }
+  }
+  
+  def asignarPuntuacion(cargarPartida: Boolean): List[Int] = 
+  {
+    if(cargarPartida)
+    {
+      val fichero = new File("puntos.dat")
+      val entrada = new ObjectInputStream(new FileInputStream(fichero))
+      
+      try
+      {
+        entrada.readObject().asInstanceOf[List[Int]]
+      }
+      finally
+      {
+        entrada.close()
+      }
+    }
+    else
+    {
+      List(0,0,0,0,0,0)
+    }   
+  }
   
   def poner(pos:Int,color:Int,tablero:List[Int]): List[Int] = {
   			if (tablero.isEmpty) Nil
@@ -258,7 +434,15 @@ object Main  extends App
 		mostrarPuntos(puntos, dificultad)		
 		dibujarTablero(tablero, numColumnas, 0, 0, true)
 		
-		print(s"\nLa máquina recomienda como mejor posición: fila: ${averiguarFila(mPunt, numColumnas)} columna: ${averiguarColumna(mPunt, numColumnas)}\n")
+		println(s"\nLa máquina recomienda como mejor posición: fila: ${averiguarFila(mPunt, numColumnas)} columna: ${averiguarColumna(mPunt, numColumnas)}\n")
+
+		val salir = preguntarQueHacer(tablero, dificultad, puntos, numVidas)
+		
+		if(salir) 
+		{
+		  println("Saliendo del juego...")
+		  System.exit(0)
+		}
 		
 		val fila = pedirFila(numFilas)
 		val columna = pedirColumna(numColumnas)		
