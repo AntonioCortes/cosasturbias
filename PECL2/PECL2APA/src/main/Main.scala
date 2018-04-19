@@ -504,12 +504,25 @@ object Main  extends App
 	  else{
 	    if(getElemento(tablero, pos, 0)==0) mejorJugada(tablero, pos+1, columna, width, mPuntacion, pos) //Si la posicion es 0 no me sirve
 	    else{
-	      val puntAux=buscarIguales(tablero, List(pos),List[Int](),List[Int](),width)//Puntuación sacada de esa posición
+	      if(getElemento(tablero, pos, 0)>=10) mejorJugada(tablero, pos+1, columna, width, 1000, pos) //Selecciono Bomba Puzzle
+	      else if(getElemento(tablero, pos, 0)==9){
+	        if(mPuntacion==1000) mejorJugada(tablero, pos+1, columna, width, mPuntacion, mPos)//No hago nada ya hay bombra Puzzle seleccionada
+	        else mejorJugada(tablero, pos+1, columna, width, 500, pos) //Selecciono TNT
+	      }
+	      else if(getElemento(tablero, pos, 0)==8 || getElemento(tablero, pos, 0)==9){
+	        if(mPuntacion==1000) mejorJugada(tablero, pos+1, columna, width, mPuntacion, mPos)//No hago nada ya hay bombra Puzzle seleccionada
+	        else if(mPuntacion==500) mejorJugada(tablero, pos+1, columna, width, mPuntacion, mPos)//No hago nada ya hay bomba TNT seleccionada
+	        else mejorJugada(tablero, pos+1, columna, width, 250, pos) //Selecciono TNT
+	      }
+	      else{
+	        val puntAux=buscarIguales(tablero, List(pos),List[Int](),List[Int](),width)//Puntuación sacada de esa posición
 	      if(puntAux.length<mPuntacion) mejorJugada(tablero, pos+1, columna, width, mPuntacion, mPos) //Si la puntuación es menor, no lo tengo en cuenta y sigo avanzando
 	      else mejorJugada(tablero, pos+1, columna, width, puntAux.length, pos) //Si no, es que es mayor o igual, entonces guardo esa puntuación y sigo avanzando.
+	      }
 	  }
-	}
-	}
+	  }
+	  }
+
 	
 	
 	//Función que buscará las combinaciones posibles
