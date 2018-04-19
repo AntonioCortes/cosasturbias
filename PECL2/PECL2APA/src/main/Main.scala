@@ -493,7 +493,7 @@ object Main  extends App
 	  if(posExpandir.isEmpty) posEliminar
 	  else{
       	  val listaExpandida= algoritmoEstrella(tablero,posExpandir.head,width)//Ejecuta el algoritmo de expansión en estrlla.
-      	  val listaExpandida2= listaExpandida.distinct //Quito iguales
+      	  val listaExpandida2= dedupe(listaExpandida) //Quito iguales
       	  val posVisitadosAux= añadirElementos(posVisitar,List(listaExpandida2.head))//Añado el nodo a la lista de posciones visitadas
       	  val listaExpandida3= añadirElementos(posEliminar, listaExpandida2) //Añado la lista a las posiciones a eliminar puesto que son iguales.
       	  val listaExpandida4= limpiarLista1000(listaExpandida3) //Elimino residuos, marcados como 1000
@@ -524,7 +524,7 @@ object Main  extends App
 	  val lposaux = List(pos)//Añado la posicion
     val lposaux2 = lposaux:+arriba:+abajo:+derecha:+izquierda //Añado las posiciones
     val lposaux3 = limpiarLista(lposaux2) //Quito los menos uno
-    val lposaux4 = lposaux3.distinct //Quito iguales y devuelvo
+    val lposaux4 = dedupe(lposaux3) //Quito iguales y devuelvo
 	  return lposaux4
 	}
 	
@@ -565,7 +565,10 @@ object Main  extends App
       lista
     }
   }
-	
+	def dedupe[T](elements:List[T]):List[T] = elements match {
+		case Nil => elements
+		case head::tail => head :: dedupe(tail filterNot (_==head))
+	}
 	def limpiarLista(lista: List[Int]): List[Int] =
   {
     if(lista.nonEmpty)
