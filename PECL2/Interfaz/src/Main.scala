@@ -725,6 +725,10 @@ object Main extends App {
         println()
       }
     }
+  def dedupe[T](elements:List[T]):List[T] = elements match {
+		case Nil => elements
+		case head::tail => head :: dedupe(tail filterNot (_==head))
+	}
   def devolverElemento(n: Int): String = n match {
     case 1  => "A"
     case 2  => "R"
@@ -809,7 +813,7 @@ object Main extends App {
     if (posExpandir.isEmpty) posEliminar
     else {
       val listaExpandida = algoritmoEstrella(tablero, posExpandir.head, width) //Ejecuta el algoritmo de expansión en estrlla.
-      val listaExpandida2 = listaExpandida.distinct //Quito iguales
+      val listaExpandida2 = dedupe(listaExpandida) //Quito iguales
       val posVisitadosAux = añadirElementos(posVisitar, List(listaExpandida2.head)) //Añado el nodo a la lista de posciones visitadas
       val listaExpandida3 = añadirElementos(posEliminar, listaExpandida2) //Añado la lista a las posiciones a eliminar puesto que son iguales.
       val listaExpandida4 = limpiarLista1000(listaExpandida3) //Elimino residuos, marcados como 1000
@@ -822,7 +826,7 @@ object Main extends App {
           val elemento = elementoNoIgual(posVisitadosAux, posEliminar)
           buscarIguales(tablero, List(elemento), posEliminar, posVisitadosAux, width)
         }
-      } else buscarIguales(tablero, listaExpandida3.tail, listaExpandida3.distinct, posVisitadosAux, width)
+      } else buscarIguales(tablero, listaExpandida3.tail,  dedupe(listaExpandida),posVisitadosAux, width)
     }
   }
 
