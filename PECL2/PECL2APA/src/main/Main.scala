@@ -590,6 +590,7 @@ object Main  extends App
 	  else unirListas(l1:+l2.head,l2.tail)
 	}
 	
+	//recibe una lista de numeros que puede contener listas vacias y devuelve esa lista de numeros pero sin las listas vacias
 	def eliminarListasVacias(lista: List[Any]): List[Any] =
   {
     if(lista.nonEmpty)
@@ -602,10 +603,14 @@ object Main  extends App
       lista
     }
   }
+	
+	//recibe una lista con elements repetidos y devuelve una lista sin los repetidos
 	def dedupe[T](elements:List[T]):List[T] = elements match {
 		case Nil => elements
 		case head::tail => head :: dedupe(tail filterNot (_==head))
 	}
+	
+	//recibe una lista de numeros y elimina de la lista los valores que sean -1
 	def limpiarLista(lista: List[Int]): List[Int] =
   {
     if(lista.nonEmpty)
@@ -630,6 +635,8 @@ object Main  extends App
       lista
      }
   }
+	
+	//recibe una lista de posiciones qu deben ser eliminadas y devuelve un tablero con esas posiciones puestas a 0
 	def eliminarIguales(tablero:List[Int],lpos:List[Int], primeraI:Boolean): List[Int] = {
 	  if(lpos.length>1){
 	    val tableroaux= poner(lpos.head,0,tablero)
@@ -675,13 +682,14 @@ object Main  extends App
 			columna
 		}
 	}
+	
 	def getElemento(tablero:List[Int],pos:Int,posActual:Int): Int = {
   			if(tablero.isEmpty) 0
   			else if(posActual==pos) tablero.head
   			else getElemento(tablero.tail, pos, posActual+1)
   	}
 	
-	
+	//recibe dos listas por parametro y devuelve una lista con los elementos no comunes de ambas listas
 	def elementosDiferentes(lista: List[Int], elementosPorMeter: List[Int]): List[Int] =
   {
     if(elementosPorMeter.nonEmpty)
@@ -694,6 +702,7 @@ object Main  extends App
       Nil
     }
   }
+	
 	def añadirElementos(lista: List[Int], elementosPorMeter: List[Int]): List[Int] =
   {
     lista ::: elementosDiferentes(lista, elementosPorMeter)
@@ -706,6 +715,7 @@ object Main  extends App
 	  else elementoNoIgual(lista1, lista2.tail)
 	  }
 	}
+	
 	def elementoEnLista(lista: List[Int], elemento: Int): Boolean =
   {
     if(lista.nonEmpty)
@@ -721,7 +731,8 @@ object Main  extends App
 	
 	
 	def menor(valor1: Int, valor2: Int): Int = if(valor1 < valor2) valor1 else valor2
-                                                  
+  
+	//devuleve el valor minimo de una lista de enteros
   def minimo(lista: List[Int]):Int =
   {
     if(lista.tail.nonEmpty)
@@ -734,6 +745,7 @@ object Main  extends App
     }
   }                                         
   
+	//elimina un valor de una lista
   def eliminarValor(lista: List[Int], valor: Int): List[Int] =
   {
     if(lista.nonEmpty)
@@ -747,6 +759,7 @@ object Main  extends App
     }
   }                                         
   
+  //recibe una lista desordenada y la ordena de menor a mayor
   def ordenarLista(lista: List[Int]): List[Int] =
   {
     if(lista.nonEmpty)
@@ -759,6 +772,7 @@ object Main  extends App
     }
   }
 
+  //recibe un tablero y desplaza una columna del tablero hacia abajo una posicion
   def bajarColumna(numColores: Int, fila: Int, columna: Int, numColumnas: Int, tablero: List[Int]): List[Int] =
   {
     val posicion = fila * numColumnas + columna
@@ -794,6 +808,7 @@ object Main  extends App
     }
   }
 
+  //recibe una posicion y devuelve la columna a la que pertenece
   def averiguarColumna(posicion: Int, numColumnas: Int): Int =
   {
     if ((posicion >= 0) && (posicion < numColumnas)) 
@@ -806,6 +821,7 @@ object Main  extends App
     }
   }
 
+  //recibe una posicion y devuelve la fila a la que pertenece
   def averiguarFila(posicion: Int, numColumnas: Int): Int =
   {
     (posicion / numColumnas).toInt
@@ -862,6 +878,7 @@ object Main  extends App
     }
   }
 
+  //devuelve una lista con las posiciones donde hay un 0 en el tablero
   def listaCeros(tablero: List[Int], posicion: Int): List[Int] =
   {
     if (tablero.nonEmpty) 
@@ -875,6 +892,7 @@ object Main  extends App
     }
   }
 
+  //comprueba si hay ceros en el tablero
   def hayCeros(lista: List[Int]): Boolean =
   {
     if (lista.isEmpty) false
@@ -882,6 +900,7 @@ object Main  extends App
     else hayCeros(lista.tail)
   }
 
+  //realiza una animación de las columnas correspondientes bajando despues de que se haya eliminado algun bloque
   def animacion(listaPosiciones: List[Int], tablero: List[Int], numColumnas: Int, numColores: Int): List[Int] =
   {
     dibujarTablero(tablero, numColumnas, 0, 0, true)
@@ -901,6 +920,7 @@ object Main  extends App
     }
   }
 
+  //devuelve la bomba correspondiente dependiendo de cuantos bloques se hayan eliminado
   def elegirBomba(listaPosiciones: List[Int], numColores: Int, tablero: List[Int], posicion: Int): Int =
   {
     if (listaPosiciones.length < 2) getElemento(tablero, posicion, 0)
@@ -910,6 +930,7 @@ object Main  extends App
     else Random.nextInt(numColores) + 10
   }
   
+  //desplaza un elemento hacia abajo en el tablero solo si por debajo de el hay huecos vacios
   def bajarElemento(tablero: List[Int], posicion: Int, numColumnas: Int): List[Int] =
   {
     val abajo = posicion + numColumnas
@@ -935,7 +956,8 @@ object Main  extends App
   }
 
   def esBomba(valor: Int): Boolean = if (valor > 6) true else false
-
+  
+  //pone una bomba en el tablero en caso de ser necesario
   def ponerBomba(tablero: List[Int], posicion: Int, listaPosiciones: List[Int], numColumnas: Int, numColores: Int): List[Int] =
   {
     val bomba = elegirBomba(listaPosiciones, numColores, tablero, posicion)
