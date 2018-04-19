@@ -68,6 +68,7 @@ object Main  extends App
     }
   }
   
+  //Ofrecela opcion de elegir entre jugar, guardar la partida o salir del juego, y en caso de elegir guardar, la guarda
   def preguntarQueHacer(tablero: List[Int], dificultad: Int, puntos: List[Int], numVidas: Int): Boolean =
   {
     println("1 - Jugar\n2 - Guardar Partida\n3 - Salir")
@@ -125,6 +126,8 @@ object Main  extends App
     else true
   }
   
+  //si se ha seleccionado cargar partida, devuelve la dificultad guardada en el fichero, si no, se pide al usuario que
+  //introduzca la dificultad y devuelve dicha dificultad
   def asignarDificultad(cargarPartida: Boolean): Int = 
   {
     if(cargarPartida)
@@ -144,6 +147,7 @@ object Main  extends App
     else pedirDificultad()
   }
   
+  //si se ha elegido la opcion cargar devuelve el numero de vidas guardadas en el fichero, si no, devuelve el valor 5
   def asignarVidas(cargarPartida: Boolean): Int =
   {
     if(cargarPartida)
@@ -165,6 +169,7 @@ object Main  extends App
     else 5
   }
   
+  //si se ha elegido cargar partida devuelde el tablero guardado en el fichero, si no genera uno nuevo y lo devuelve
   def asignarTablero(cargarPartida: Boolean, numFilas: Int, numColumnas: Int, numColores: Int): List[Int] = 
   {
     if(cargarPartida)
@@ -187,6 +192,8 @@ object Main  extends App
     }
   }
   
+  //si se ha elegido la opcion cargar devuelve una lista con la puntuacion guardada en el fichero, si no devuelve
+  //una lista de puntuaciones con todos los valores a 0
   def asignarPuntuacion(cargarPartida: Boolean): List[Int] = 
   {
     if(cargarPartida)
@@ -209,16 +216,20 @@ object Main  extends App
     }   
   }
   
+  
   def poner(pos:Int,color:Int,tablero:List[Int]): List[Int] = {
   			if (tablero.isEmpty) Nil
   			else if (pos==0) color::tablero.tail //else if (pos==0) color::tablero.tail
   			else tablero.head::poner(pos-1,color,tablero.tail)
   }
+  
   def crearLista(tam: Int, numColores: Int): List[Int] = tam match
  	{
  		case 0 => Nil
  		case _ => (Random.nextInt(numColores) + 1)::crearLista(tam -1, numColores)
- 	}                                         
+ 	}        
+  
+  //pide al usuario el nivel de dificultad y devuelve el nivel de dificultad introducido
  	def pedirDificultad(): Int = 
 	{
 		println("Introduzca la dificultad (1/2/3):")
@@ -256,40 +267,42 @@ object Main  extends App
 		case 3 => 6
 	}
 	
+	//funcion auxiliar de dibujarTablero que ayuda a dicha funcion a saber si debe saltar a la siguiente fila o no
 	def auxFila(lista: List[Int], numColumnas: Int, fila: Int): Int = if(lista.length % numColumnas == 0) fila + 1 else fila
 
+	//dibuja el tablero por pantalla
 	def dibujarTablero(tablero: List[Int], numColumnas: Int, fila: Int, columna: Int, dibujarColumnas: Boolean): Unit =
 	{	
-	  if (dibujarColumnas)
+	  if (dibujarColumnas) //si hay que dibujar el numero que indica cada columna 0 , 1, 2, 3, ..., anchuraMatriz
 	  {
 	    if(columna == 0) print(s"    ")
 	  
-	    if(columna == numColumnas)
+	    if(columna == numColumnas) //si ya se han dibujado todos los numero que representan cada columna
 	    {
 	      print("\n\n0   ")
 	      dibujarTablero(tablero, numColumnas, fila, columna, false)
 	    }
-	    else if((columna < numColumnas) && (columna < 10))
-		  {
+	    else if((columna < numColumnas) && (columna < 10))// si aun no se han representado todos los numeros que representan 	                                                       
+		  {                                                  //a cada columna y el numero de columna solo tiene un digito 
 			  print(s"$columna  ")
 			  
 			  
 			  dibujarTablero(tablero, numColumnas, fila, columna + 1, true)
 		  }
-		  else if(columna < numColumnas)
-		  {
+		  else if(columna < numColumnas)//si aun no se han representado todos los numeros que representan 	                                                       
+		  {                                                  //a cada columna y el numero de columna tiene mas de un digito
 			  print(s"$columna ") 
 			  dibujarTablero(tablero, numColumnas, fila, columna + 1, true)
 		  }
 	  }
 	  else if(tablero.nonEmpty)
 		{
-			print(devolverElemento(tablero.head)) 
+			print(devolverElemento(tablero.head)) //dibujar la letra equivalente al numero en la posicion del tablero correspondiente
 			
-			if(tablero.tail.length % numColumnas == 0 && tablero.tail.nonEmpty) 
-			{
-			  if(fila + 1 < 10) print(s"\n${fila + 1}   ")
-			  else print(s"\n${fila + 1}  ")
+			if(tablero.tail.length % numColumnas == 0 && tablero.tail.nonEmpty) //si estamos en la ultima columna y por lo tanto 
+			{                                                                   //en la siguiente iteracion hay que cambiar de fila
+			  if(fila + 1 < 10) print(s"\n${fila + 1}   ") //si el numero de fila tiene un digito, lo dibuja, y deja 3 espacios
+			  else print(s"\n${fila + 1}  ")//si el numero de fila tiene dos digitos, lo dibuja y deja 2 espacios
 			}
 			
 			dibujarTablero(tablero.tail, numColumnas, auxFila(tablero.tail, numColumnas, fila), columna,false)
@@ -300,7 +313,7 @@ object Main  extends App
 		}
 	}
 	
-	
+	//devuelve la letra correspondiente a cada color o bomba
 	def devolverElemento(n:Int): String =  n match {
 	  case 1 => "A  "
 	  case 2 => "R  "
@@ -320,6 +333,7 @@ object Main  extends App
 	  case _ => "   "
 	}
 
+	//escribe por pantalla la lista de puntos acumulados
 	def mostrarPuntos(puntos: List[Int], dificultad: Int): Unit = dificultad match
 	{
 	  case 1 => print(s"PUNTOS: Azul: ${getElemento(puntos, 0, 0)} Rojo: ${getElemento(puntos, 1, 0)} Naranja: ${getElemento(puntos, 2, 0)} Verde: ${getElemento(puntos, 3, 0)}\n\n")
@@ -327,17 +341,18 @@ object Main  extends App
 	  case 3 => print(s"PUNTOS: Azul: ${getElemento(puntos, 0, 0)} Rojo: ${getElemento(puntos, 1, 0)} Naranja: ${getElemento(puntos, 2, 0)} Verde: ${getElemento(puntos, 3, 0)} Plata: ${getElemento(puntos, 4, 0)} Morado: ${getElemento(puntos, 5, 0)}\n\n")
 	}
 	
+	//actualiza la lista de puntos acumulados
 	def actualizarPuntos(listaPosiciones: List[Int], puntos: List[Int], color: Int, tablero: List[Int], esBomba: Boolean): List[Int] = 
 	{
-	  if(esBomba && listaPosiciones.nonEmpty)
+	  if(esBomba && listaPosiciones.nonEmpty)//si la posicion seleccionada es bomba y la lista de posiciones a explotar no es vacia
 	  {
-	    val col = getElemento(tablero, listaPosiciones.head, 0)//color
+	    val col = getElemento(tablero, listaPosiciones.head, 0)//color del primer elemento de la lista de posiciones a explotar
 	    
-	    val puntuacionActualizada = poner((col - 1),(getElemento(puntos, (col - 1), 0) + 1) , puntos)
+	    val puntuacionActualizada = poner((col - 1),(getElemento(puntos, (col - 1), 0) + 1) , puntos)// suma un punto al color del primer elemento de la lista de posiciones a explotar
 	    
 	    actualizarPuntos(listaPosiciones.tail, puntuacionActualizada, color, tablero, esBomba)
 	  }
-	  else if(esBomba && listaPosiciones.isEmpty) puntos
+	  else if(esBomba && listaPosiciones.isEmpty) puntos //si la posicion seleccionada es bomba  y ya no quedan posiciones por explotar, se devuelve la lista de puntos
 	  else
 	  {
 	    val puntuacion = listaPosiciones.length
@@ -349,6 +364,8 @@ object Main  extends App
 	  }	  
 	}
 	
+	//si el tablero antes de elegir una posicion es igual que el tablero despues de elegir la posicion significa que no se ha explotado
+	//ningun bloque y por lo tanto se pierde una vida, en cuyo caso la funcion devuelve el numero de vidas - 1, en caso contrario devuelve el numero de vidas
 	def actualizarVidas(tableroOriginal: List[Int], tableroFinal: List[Int], numVidas: Int): Int = 
 	{
 	  if(tableroOriginal == tableroFinal) 
@@ -359,6 +376,8 @@ object Main  extends App
 	  else numVidas
 	}
 	
+	//esta funcion determina si se cumplen las cndiciones necesarias para terminar el juego(ganar partida o quedarse sin vidas)
+	//y devuelve true en caso de que se cumplan las condiciones o devuelve false en caso contrario
 	def terminarJuego(numVidas: Int, dificultad: Int, puntos: List[Int]): Boolean =
 	{
 	  val ptsAzul = getElemento(puntos, 0, 0)
@@ -407,16 +426,20 @@ object Main  extends App
 	  
 	}
 	
+	//si la posicion elegida por el jugador es una bomba, devuleve una lista de posiciones a explotar por la bomba, si no lo es
+	//devuelve la lista de posiciones a eliminar (eliminacion normal de bloques conriguos) recibida por parametro
 	def comprobarListaPos(tablero: List[Int], listaPosiciones: List[Int], esBomba: Boolean, posicion: Int, numColumnas: Int): List[Int] = 
 	{
 	  if(esBomba)
 	  {
-	    explotarBomba(tablero, posicion, numColumnas)
+	    explotarBomba(tablero, posicion, numColumnas)//devuelve la lista de posiciones a explotar por la bomba
 	  }
 	  else if(listaPosiciones.length == 1) List[Int]()
 	  else listaPosiciones
 	}
 	
+	//en funcion de la posicion elegida por el usuario, ejecuta las acciones correspondientes, explotar la bomba, en caso de 
+	//tratarse de una bomba
   def ejecutar(tablero: List[Int], posicion: Int, numColumnas: Int, numColores: Int): List[Int] =
   {
     val columna = averiguarColumna(posicion, numColumnas)
@@ -424,7 +447,7 @@ object Main  extends App
     if (esBomba(tablero(posicion))) 
     {
       val listaPos = explotarBomba(tablero, posicion, numColumnas)//devuelve la lista de posiciones a eliminar por la bomba
-      val tablero2 = eliminarIguales(tablero, listaPos, true)//elimina las posiciones de la lista
+      val tablero2 = eliminarIguales(tablero, listaPos, true)//elimina los elementos del tablero correspondientes a las posiciones de la lista de posiciones a eliminar
 
       animacion(listaPos, tablero2, numColumnas, numColores)
     } 
