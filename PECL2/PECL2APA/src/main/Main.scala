@@ -327,14 +327,26 @@ object Main  extends App
 	  case 3 => print(s"PUNTOS: Azul: ${getElemento(puntos, 0, 0)} Rojo: ${getElemento(puntos, 1, 0)} Naranja: ${getElemento(puntos, 2, 0)} Verde: ${getElemento(puntos, 3, 0)} Plata: ${getElemento(puntos, 4, 0)} Morado: ${getElemento(puntos, 5, 0)}\n\n")
 	}
 	
-	def actualizarPuntos(listaPosiciones: List[Int], puntos: List[Int], color: Int): List[Int] = 
+	def actualizarPuntos(listaPosiciones: List[Int], puntos: List[Int], color: Int, tablero: List[Int], esBomba: Boolean): List[Int] = 
 	{
-	  val puntuacion = listaPosiciones.length
-	  if(puntuacion < 1) puntos
+	  if(esBomba && listaPosiciones.nonEmpty)
+	  {
+	    val col = getElemento(tablero, listaPosiciones.head, 0)//color
+	    
+	    val puntuacionActualizada = poner((col - 1),(getElemento(puntos, (col - 1), 0) + 1) , puntos)
+	    
+	    actualizarPuntos(listaPosiciones.tail, puntuacionActualizada, color, tablero, esBomba)
+	  }
+	  else if(esBomba && listaPosiciones.isEmpty) puntos
 	  else
 	  {
-	    poner((color - 1),(getElemento(puntos, (color - 1), 0) + puntuacion) , puntos)   
-	  }
+	    val puntuacion = listaPosiciones.length
+	    if(puntuacion < 1) puntos
+	    else
+	    {
+	      poner((color - 1),(getElemento(puntos, (color - 1), 0) + puntuacion) , puntos)   
+	    }	    
+	  }	  
 	}
 	
 	def actualizarVidas(tableroOriginal: List[Int], tableroFinal: List[Int], numVidas: Int): Int = 
@@ -395,9 +407,13 @@ object Main  extends App
 	  
 	}
 	
-	def comprobarListaPos(tablero: List[Int], listaPosiciones: List[Int]): List[Int] = 
+	def comprobarListaPos(tablero: List[Int], listaPosiciones: List[Int], esBomba: Boolean, posicion: Int, numColumnas: Int): List[Int] = 
 	{
-	  if(listaPosiciones.length == 1) List[Int]()
+	  if(esBomba)
+	  {
+	    explotarBomba(tablero, posicion, numColumnas)
+	  }
+	  else if(listaPosiciones.length == 1) List[Int]()
 	  else listaPosiciones
 	}
 	
@@ -407,21 +423,20 @@ object Main  extends App
 
     if (esBomba(tablero(posicion))) 
     {
-      val tablero2 = explotarBomba(tablero, posicion, numColumnas)
-      val listCeros = listaCeros(tablero2, 0)
+      val listaPos = explotarBomba(tablero, posicion, numColumnas)//devuelve la lista de posiciones a eliminar por la bomba
+      val tablero2 = eliminarIguales(tablero, listaPos, true)//elimina las posiciones de la lista
 
-      animacion(listCeros, tablero2, numColumnas, numColores)
+      animacion(listaPos, tablero2, numColumnas, numColores)
     } 
     else
     {
       val listpos = List[Int]()
-      val listaMuerte = buscarIguales(tablero, List(posicion),List[Int]() ,List[Int](),numColumnas)
-      val listaPosFin = comprobarListaPos(tablero, listaMuerte)
+      val listaPos = buscarIguales(tablero, List(posicion),List[Int]() ,List[Int](),numColumnas)
+      val listaPosFin = comprobarListaPos(tablero, listaPos, esBomba(getElemento(tablero, posicion, 0)), posicion, numColumnas)
       val tablero2 = eliminarIguales(tablero, listaPosFin, true)
       val tablero3 = ponerBomba(tablero2, posicion, listaPosFin, numColumnas, numColores)      
-      val listCeros = listaCeros(tablero3, 0)
 
-      animacion(listCeros, tablero3, numColumnas, numColores)
+      animacion(listaPos, tablero3, numColumnas, numColores)
     }
   }
   
@@ -449,12 +464,15 @@ object Main  extends App
 		val pos= fila*numColumnas+columna
 		val color = getElemento(tablero, pos, 0)
 		val tableroFin = ejecutar(tablero, pos, numColumnas, numColores)
-		val listaPos = buscarIguales(tablero, List(pos),List[Int]() ,List[Int](),numColumnas)
-		val puntosActualizados = actualizarPuntos(comprobarListaPos(tablero, listaPos), puntos, color)
+		val listaPos = buscarIguales(tablero, List(pos),List[Int]() ,List[Int](),numColumnas)		
+		val puntosActualizados = actualizarPuntos(comprobarListaPos(tablero, listaPos, esBomba(color), pos, numColumnas), puntos, color, tablero, esBomba(color))
 		val vidasActualizadas = actualizarVidas(tablero, tableroFin, numVidas)
 
-		if(!terminarJuego(vidasActualizadas, dificultad, puntosActualizados)) juego(tableroFin, numFilas, numColumnas, dificultad, vidasActualizadas, numColores, puntosActualizados)
-  }
+		if(!terminarJuego(vidasActualizadas, dificultad, puntosActualizados)) 
+		{
+		  juego(tableroFin, numFilas, numColumnas, dificultad, vidasActualizadas, numColores, puntosActualizados)
+		}
+	}
 	
 	//Esta funcion calculará la mejor jugada cogiendo todas las posibles combinaciones del tablero y sacando la mejor.
 	def mejorJugada(tablero:List[Int],pos:Int,columna:Int,width:Int,mPuntacion:Int,mPos:Int):Int={
@@ -529,8 +547,6 @@ object Main  extends App
  	  if((n1 != 0) && (tablero(pos)==tablero(pos-1))) pos-1
   	  else -1
   	}
-	
-
 	
 	def unirListas(l1:List[Int],l2:List[Int]):List[Int]={
 	  if(l2.isEmpty) l1
@@ -835,6 +851,8 @@ object Main  extends App
       val tablero2 = bajarCeros(listaPosiciones, tablero, numColumnas, numColores)
       val listCeros = separarEnColumnas(listaCeros(tablero2, 0), numColumnas, 0)
 
+      Thread.sleep(150)
+      
       animacion(listCeros, tablero2, numColumnas, numColores)
     } 
     else 
@@ -888,18 +906,17 @@ object Main  extends App
 
   def explosionHorizontal(tablero: List[Int], fila: Int, tamTablero: Int, numColumnas: Int): List[Int] =
   {
-    println(s"hago explosion horizontal en la fila $fila")
     val posicion = tamTablero - tablero.length
     val filaActual = averiguarFila(posicion, numColumnas)
 
     if (tablero.nonEmpty)
     {
-      if (filaActual == fila) 0 :: explosionHorizontal(tablero.tail, fila, tamTablero, numColumnas)
-      else tablero.head :: explosionHorizontal(tablero.tail, fila, tamTablero, numColumnas)
+      if (filaActual == fila) posicion :: explosionHorizontal(tablero.tail, fila, tamTablero, numColumnas)
+      else explosionHorizontal(tablero.tail, fila, tamTablero, numColumnas)
     } 
     else 
     {
-      tablero
+      Nil
     }
   }
 
@@ -909,12 +926,12 @@ object Main  extends App
     val columnaActual = averiguarColumna(posicion, numColumnas)
     if (tablero.nonEmpty) 
     {
-      if (columnaActual == columna) 0 :: explosionVertical(tablero.tail, columna, tamTablero, numColumnas)
-      else tablero.head :: explosionVertical(tablero.tail, columna, tamTablero, numColumnas)
+      if (columnaActual == columna) posicion :: explosionVertical(tablero.tail, columna, tamTablero, numColumnas)
+      else explosionVertical(tablero.tail, columna, tamTablero, numColumnas)
     } 
     else 
     {
-      tablero    
+      Nil    
     }
   }
 
@@ -936,42 +953,42 @@ object Main  extends App
     {
       if ((posicion == posSeleccionada) || (posicion == arribaPosSel) || (posicion == abajoPosSel) || (posicion == izPosSel) || (posicion == derPosSel)) 
       {
-        0 :: explosionTNT(tablero.tail, posSeleccionada, tamTablero, numColumnas)
+        posicion :: explosionTNT(tablero.tail, posSeleccionada, tamTablero, numColumnas)
       } 
       else if ((posicion == arrDerPosSel) || (posicion == arrIzPosSel) || (posicion == abDerPosSel) || (posicion == abIzPosSel)) 
       {
-        0 :: explosionTNT(tablero.tail, posSeleccionada, tamTablero, numColumnas)
+        posicion :: explosionTNT(tablero.tail, posSeleccionada, tamTablero, numColumnas)
       } 
       else 
       {
-        tablero.head :: explosionTNT(tablero.tail, posSeleccionada, tamTablero, numColumnas)
+        explosionTNT(tablero.tail, posSeleccionada, tamTablero, numColumnas)
       }
     } 
     else
     {
-      tablero
+      Nil
     }
   }
   
   def explotarPuzle(tablero: List[Int], tipoPuzle: Int): List[Int] = tipoPuzle match
   {
-    case 10 => explosionPuzle(tablero, 1)
-    case 11 => explosionPuzle(tablero, 2)
-    case 12 => explosionPuzle(tablero, 3)
-    case 13 => explosionPuzle(tablero, 4)
-    case 14 => explosionPuzle(tablero, 5)
-    case _ => explosionPuzle(tablero, 6)
+    case 10 => explosionPuzle(tablero, 1, 0)
+    case 11 => explosionPuzle(tablero, 2, 0)
+    case 12 => explosionPuzle(tablero, 3, 0)
+    case 13 => explosionPuzle(tablero, 4, 0)
+    case 14 => explosionPuzle(tablero, 5, 0)
+    case _ => explosionPuzle(tablero, 6, 0)
   }
   
-  def explosionPuzle(tablero: List[Int], color: Int): List[Int] =
+  def explosionPuzle(tablero: List[Int], color: Int, posActual: Int): List[Int] =
   {
     if (tablero.nonEmpty) {
-      if ((tablero.head == color) || (tablero.head > 9)) 0 :: explosionPuzle(tablero.tail, color)
-      else tablero.head :: explosionPuzle(tablero.tail, color)
+      if ((tablero.head == color) || (tablero.head > 9)) posActual :: explosionPuzle(tablero.tail, color, posActual + 1)
+      else explosionPuzle(tablero.tail, color, posActual + 1)
     } 
     else 
     {
-      tablero
+      Nil
     }
   }
 
@@ -989,4 +1006,5 @@ object Main  extends App
       case _ => explotarPuzle(tablero, tipoBomba)
     }
   }
+  
 }
