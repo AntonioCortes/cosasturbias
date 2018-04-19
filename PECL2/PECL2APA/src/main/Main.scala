@@ -68,7 +68,7 @@ object Main  extends App
     }
   }
   
-  //Ofrecela opcion de elegir entre jugar, guardar la partida o salir del juego, y en caso de elegir guardar, la guarda
+  //Ofrece la opcion de elegir entre jugar, guardar la partida o salir del juego, y en caso de elegir guardar, la guarda
   def preguntarQueHacer(tablero: List[Int], dificultad: Int, puntos: List[Int], numVidas: Int): Boolean =
   {
     println("1 - Jugar\n2 - Guardar Partida\n3 - Salir")
@@ -463,9 +463,10 @@ object Main  extends App
     }
   }
   
+  //"bucle" principal del juego
 	def juego(tablero: List[Int],numFilas: Int, numColumnas: Int, dificultad: Int, numVidas: Int, numColores: Int, puntos: List[Int]): Unit =
 	{
-	  val mPunt= mejorJugada(tablero, 0, 0, numColumnas,0, 0)
+	  val mPunt= mejorJugada(tablero, 0, 0, numColumnas,0, 0)//determina cual es la mejor posicion a elegir por el jugador
 	  
 	  println()
 		print(s"Vidas: $numVidas Dificultad: $dificultad ")	
@@ -474,7 +475,7 @@ object Main  extends App
 		
 		println(s"\nLa máquina recomienda como mejor posición: fila: ${averiguarFila(mPunt, numColumnas)} columna: ${averiguarColumna(mPunt, numColumnas)}\n")
 
-		val salir = preguntarQueHacer(tablero, dificultad, puntos, numVidas)
+		val salir = preguntarQueHacer(tablero, dificultad, puntos, numVidas)//pregunta al usuario que hacer llegado este punto si guardar, jugar o salir del juego y devuelve true si se elige salir
 		
 		if(salir) 
 		{
@@ -482,14 +483,14 @@ object Main  extends App
 		  System.exit(0)
 		}
 		
-		val fila = pedirFila(numFilas)
-		val columna = pedirColumna(numColumnas)		
-		val pos= fila*numColumnas+columna
+		val fila = pedirFila(numFilas)//pide al usuario que introduzca la fila
+		val columna = pedirColumna(numColumnas)//pide al usuario que introduzca la columna		
+		val pos= fila*numColumnas+columna//posicion elegida
 		val color = getElemento(tablero, pos, 0)
-		val tableroFin = ejecutar(tablero, pos, numColumnas, numColores)
-		val listaPos = buscarIguales(tablero, List(pos),List[Int]() ,List[Int](),numColumnas)		
-		val puntosActualizados = actualizarPuntos(comprobarListaPos(tablero, listaPos, esBomba(color), pos, numColumnas), puntos, color, tablero, esBomba(color))
-		val vidasActualizadas = actualizarVidas(tablero, tableroFin, numVidas)
+		val tableroFin = ejecutar(tablero, pos, numColumnas, numColores)//devuelve como queda el tablero despues de ejecutar la jugada
+		val listaPos = buscarIguales(tablero, List(pos),List[Int]() ,List[Int](),numColumnas)	//devuelve la lista de posiciones que se han eliminado del tablero	
+		val puntosActualizados = actualizarPuntos(comprobarListaPos(tablero, listaPos, esBomba(color), pos, numColumnas), puntos, color, tablero, esBomba(color)) //actualiza la puntuacion
+		val vidasActualizadas = actualizarVidas(tablero, tableroFin, numVidas)// actualiza el numero de vidas
 
 		if(!terminarJuego(vidasActualizadas, dificultad, puntosActualizados)) 
 		{
