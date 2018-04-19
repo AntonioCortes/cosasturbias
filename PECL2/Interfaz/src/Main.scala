@@ -94,7 +94,7 @@ object Main extends App {
     val listaACrear = crearLista(filas * columnas, numColores)
     val mPunt = mejorJugada(listaACrear, 0, 0, columnas, 0, 0)
     val listaBotones = crearBotones(listaACrear, 0)
-    botonGuardar.setBounds(300, 0, 100, 50)
+    botonGuardar.setBounds(300*dificultad, 0, 100, 50)
     botonGuardar.setBorderPainted(false)
     botonGuardar.addActionListener(ActionListener => {
       val ficheroDatos = new File("Datos Partida.txt")
@@ -134,7 +134,7 @@ object Main extends App {
     val frame = new JFrame
     frame.setLayout(null);
     val botonGuardar = new JButton("Guardar y salir")
-    botonGuardar.setBounds(300 * dificultad, 0, 500, 50)
+    botonGuardar.setBounds(300*dificultad, 0, 100, 50)
     botonGuardar.setBorderPainted(false)
     botonGuardar.addActionListener(ActionListener => {
       val ficheroDatos = new File("Datos Partida.txt")
