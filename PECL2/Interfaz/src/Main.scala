@@ -22,10 +22,44 @@ object Main extends App {
   val boton2 = new JButton("Cargar Partida")
   boton2.setBounds(200, 75, 150, 30)
   boton2.addActionListener(ActionListener => { ////////Aqui es Cargar partida todo esto Cuadno lo tengas me lo pasas
+    
+    
+    val fichero = new File("Datos Partida.txt")
+    val entrada = new BufferedReader(new FileReader(fichero))
+    val entrada2 = new BufferedReader(new FileReader(fichero))
+    
+    val fichero3 = new File("tablero.dat")
+    val entrada3 = new ObjectInputStream(new FileInputStream(fichero3))
+    
+    val fichero4 = new File("puntos.dat")
+    val entrada4 = new ObjectInputStream(new FileInputStream(fichero4))
+      
+      try
+      {
+        val dificultad = entrada.readLine().toInt
 
-    frame.setVisible(false); //you can't see me!
-    frame.dispose(); //Elimina el frame
-    ventanaDificultad()
+        entrada2.readLine()
+        
+        val numVidas = entrada2.readLine().toInt
+        val tablero = entrada3.readObject().asInstanceOf[List[Int]]
+        val listaPuntos = entrada4.readObject().asInstanceOf[List[Int]]
+        
+        val columnas = asignarNumColumnas(dificultad)
+        val filas = asignarNumFilas(dificultad)
+        val numColores = asignarNumColores(dificultad)
+        
+        frame.setVisible(false); //you can't see me!
+        frame.dispose(); //Elimina el frame
+        
+        cargarTablero(tablero, listaPuntos, columnas, filas, numColores, dificultad)
+      }
+      finally
+      {
+        entrada4.close()
+        entrada3.close()
+        entrada2.close()
+        entrada.close()
+      } 
   })
   frame.getContentPane.add(boton1)
   frame.getContentPane.add(boton2)
@@ -128,6 +162,88 @@ object Main extends App {
     })
     frame.getContentPane().add(botonGuardar)
     crearTableroColores(listaBotones, frame, columnas, filas, 0, 30, 60, numColores, listaACrear, dificultad, mPunt, List[Int](0, 0, 0, 0, 0, 0))
+  }
+  
+  def cargarTablero(tablero: List[Int], listaPuntos: List[Int], columnas: Int, filas: Int, numColores: Int, dificultad: Int) {
+    val frame = new JFrame
+    frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE)
+    frame.setSize((columnas + 3) * 50, (filas + 3) * 50) //Lo hago más grande para que me quede bien
+    frame.setVisible(true)
+    frame.setLayout(null);
+    frame.setLocationRelativeTo(null)
+    frame.setTitle("Toy_Blast Nivel De Dificultad " + dificultad.toString())
+    val botonGuardar = new JButton("Guardar y salir")
+    val listaACrear = tablero
+    val mPunt = mejorJugada(listaACrear, 0, 0, columnas, 0, 0)
+    val listaBotones = crearBotones(listaACrear, 0)
+    botonGuardar.setBounds(300*dificultad, 0, 100, 50)
+    botonGuardar.setBorderPainted(false)
+    botonGuardar.addActionListener(ActionListener => {
+      val ficheroDatos = new File("Datos Partida.txt")
+      val writerDatos = new BufferedWriter(new FileWriter(ficheroDatos))
+      try {
+        writerDatos.write(s"$dificultad\n5")
+      } finally {
+        writerDatos.close()
+      }
+
+      val ficheroTablero = new File("tablero.dat")
+      val salidaTablero = new ObjectOutputStream(new FileOutputStream(ficheroTablero))
+
+      try {
+        salidaTablero.writeObject(listaACrear)
+      } finally {
+        salidaTablero.close()
+      }
+
+      val ficheroPuntos = new File("puntos.dat")
+      val salidaPuntos = new ObjectOutputStream(new FileOutputStream(ficheroPuntos))
+
+      try {
+        val puntos = 0
+        salidaPuntos.writeObject(puntos)
+      } finally {
+        salidaPuntos.close()
+        frame.dispose()
+        System.exit(1)
+      }
+    })
+    frame.getContentPane().add(botonGuardar)
+    
+    dificultad match {
+      case 1 => {
+        val puntos = new JLabel("Azules: " + getElemento(listaPuntos, 0, 0).toString() + " Rojos: " + getElemento(listaPuntos, 1, 0).toString() + " Naranjas: " + getElemento(listaPuntos, 2, 0).toString() + " Verdes: " + getElemento(listaPuntos, 3, 0).toString() + " ")
+        puntos.setBounds(10, 10, 400, 20)
+        frame.getContentPane().add(puntos)
+        if (getElemento(listaPuntos, 0, 0) == 20 && getElemento(listaPuntos, 1, 0) == 20 && getElemento(listaPuntos, 2, 0) == 20 && getElemento(listaPuntos, 3, 0) == 20) {
+          frame.setVisible(false)
+          frame.dispose()
+          panelVictoria()
+        }
+      }
+      case 2 => {
+        val puntos = new JLabel("Azules: " + getElemento(listaPuntos, 0, 0).toString() + " Rojos: " + getElemento(listaPuntos, 1, 0).toString() + " Naranjas: " + getElemento(listaPuntos, 2, 0).toString() + " Verdes: " + getElemento(listaPuntos, 3, 0).toString() + " Platas: " + getElemento(listaPuntos, 4, 0).toString() + " ")
+        puntos.setBounds(10, 10, 500, 20)
+        frame.getContentPane().add(puntos)
+        if (getElemento(listaPuntos, 0, 0) == 15 && getElemento(listaPuntos, 1, 0) == 15 && getElemento(listaPuntos, 2, 0) == 15 && getElemento(listaPuntos, 3, 0) == 15 && getElemento(listaPuntos, 4, 0) == 15) {
+          frame.setVisible(false)
+          frame.dispose()
+          panelVictoria()
+        }
+      }
+      case 3 => {
+        val puntos = new JLabel("Azules: " + getElemento(listaPuntos, 0, 0).toString() + " Rojos: " + getElemento(listaPuntos, 1, 0).toString() + " Naranjas: " + getElemento(listaPuntos, 2, 0).toString() + " Verdes: " + getElemento(listaPuntos, 3, 0).toString() + " Platas: " + getElemento(listaPuntos, 4, 0).toString() + " Morado: " + getElemento(listaPuntos, 5, 0).toString() + " ")
+        puntos.setBounds(10, 10, 600, 20)
+        frame.getContentPane().add(puntos)
+        if (getElemento(listaPuntos, 0, 0) == 10 && getElemento(listaPuntos, 1, 0) == 10 && getElemento(listaPuntos, 2, 0) == 10 && getElemento(listaPuntos, 3, 0) == 10 && getElemento(listaPuntos, 4, 0) == 10) {
+          frame.setVisible(false)
+          frame.dispose()
+          panelVictoria()
+        }
+      }
+    }
+    
+    crearTableroColores(listaBotones, frame, columnas, filas, 0, 30, 60, numColores, listaACrear, dificultad, mPunt, listaPuntos)
   }
 
   def continuacionTablero(tablero: List[Int], numColumnas: Int, numFilas: Int, numColores: Int, dificultad: Int, listaPuntos: List[Int]) {
@@ -519,6 +635,27 @@ object Main extends App {
 *
 */
 
+  def asignarNumFilas(dificultad: Int): Int = dificultad match 
+	{
+		case 1 => 7
+		case 2 => 11
+		case 3 => 15
+	}
+	
+	def asignarNumColumnas(dificultad: Int): Int = dificultad match
+	{
+		case 1 => 9
+		case 2 => 17
+		case 3 => 27
+	}
+	
+	def asignarNumColores(dificultad: Int): Int = dificultad match
+	{
+		case 1 => 4
+		case 2 => 5
+		case 3 => 6
+	}
+  
   def ejecutar(tablero: List[Int], posicion: Int, numColumnas: Int, numColores: Int): List[Int] =
     {
       val columna = averiguarColumna(posicion, numColumnas)
